@@ -1,7 +1,8 @@
 /* 宝贝学习乐园 · Service Worker
    策略：首页网络优先（保证内容更新），其余资源缓存优先 + 后台更新。
-   首次联网访问后即可离线玩；更新代码后建议重新部署并发布新版本号 CACHE。 */
-const CACHE = 'baby-learning-v2';
+   首次联网访问后即可离线玩；更新代码/语音后发布新版本号 CACHE（v3 起，
+   语音分片 audio-*.js 走缓存优先，不升版本号老用户会一直听旧语音）。 */
+const CACHE = 'baby-learning-v3';
 const SHELL = [
   './',
   './index.html',
