@@ -71,6 +71,11 @@
   .img-wrap.big img { border-radius:20px; }
   .option.has-img { width:clamp(130px,24vw,190px); height:clamp(120px,22vw,180px); min-width:0; min-height:0; padding:6px; overflow:hidden; }
 
+  /* ---------- 公主换装 ---------- */
+  #doll-stage { display:flex; align-items:center; justify-content:center; }
+  #doll-stage svg { width: clamp(200px, 34vw, 260px); height:auto; filter: drop-shadow(0 10px 16px rgba(255,143,176,.35)); }
+  .dz-btn { width:auto !important; height:auto !important; min-width:150px; min-height:70px; font-size:clamp(18px,3.5vw,26px) !important; padding:10px 22px; }
+
   /* ---------- 翻翻乐 ---------- */
   #options.mem-grid { display:grid; grid-template-columns: repeat(3, minmax(120px, 180px)); gap:16px; justify-content:center; }
   .mem-card { min-width:0; min-height:0; aspect-ratio:1/1; padding:0; border:none; background:none; box-shadow:none; perspective:600px; }
@@ -337,8 +342,20 @@ function playTexts(texts, done){
 /* ================= 题库 ================= */
 const COUNT_EMOJIS = [['🍎','苹果'],['🌟','星星'],['🐠','小鱼'],['🎈','气球'],['🦋','蝴蝶'],['🍓','草莓'],['🐷','小猪'],['🐶','小狗']];
 
-/* ================= 卡通角色（原创精绘 SVG 插画风，避免使用版权图片） ================= */
+/* ================= 卡通角色（原创精绘 SVG 插画风，带场景背景，避免使用版权图片） ================= */
 let SVG_UID = 0;
+const SPARK = 'M0 -6 Q1.3 -1.3 6 0 Q1.3 1.3 0 6 Q-1.3 1.3 -6 0 Q-1.3 -1.3 0 -6 Z';
+
+function sceneDefs(u, bg1, bg2){
+  return `<rect x="3" y="3" width="114" height="126" rx="22" fill="url(#${u}bg)"/>
+    <circle cx="24" cy="22" r="9" fill="#ffffff" opacity="0.75"/>
+    <circle cx="33" cy="20" r="6.5" fill="#ffffff" opacity="0.75"/>
+    <circle cx="94" cy="30" r="7.5" fill="#ffffff" opacity="0.65"/>
+    <path d="${SPARK}" fill="#fff" opacity="0.9" transform="translate(100,16) scale(0.75)"/>
+    <path d="${SPARK}" fill="#fff" opacity="0.7" transform="translate(16,52) scale(0.55)"/>
+    <ellipse cx="14" cy="102" rx="9" ry="4" fill="#a7e3b2" opacity="0.9"/>
+    <ellipse cx="106" cy="106" rx="10" ry="4.5" fill="#a7e3b2" opacity="0.9"/>`;
+}
 
 function pigSVG(shirt, w, opts){
   opts = opts || {};
@@ -359,8 +376,14 @@ function pigSVG(shirt, w, opts){
       <ellipse cx="19" cy="34" rx="7" ry="5" fill="#d3f9d8"/>
       <path d="M36 22 Q45 24 41 33" stroke="#2f9e44" stroke-width="4.5" fill="none" stroke-linecap="round"/>
     </g>` : '';
+  const tail = `
+    <path d="M88 104 Q98 100 96 92 Q94 85 87 88" stroke="#f29ab8" stroke-width="3.4"
+      fill="none" stroke-linecap="round"/>`;
   return `<svg viewBox="0 0 120 132" width="${w}" xmlns="http://www.w3.org/2000/svg">
     <defs>
+      <linearGradient id="${u}bg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#cdeeff"/><stop offset="55%" stop-color="#e8f7e6"/><stop offset="100%" stop-color="#d4f2cf"/>
+      </linearGradient>
       <radialGradient id="${u}s" cx="50%" cy="38%" r="78%">
         <stop offset="0%" stop-color="#ffdbe7"/><stop offset="60%" stop-color="#f9bccf"/><stop offset="100%" stop-color="#ee9cb9"/>
       </radialGradient>
@@ -370,7 +393,9 @@ function pigSVG(shirt, w, opts){
       ${dino}
       <filter id="${u}b" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.7"/></filter>
     </defs>
+    ${sceneDefs(u)}
     <ellipse cx="60" cy="126" rx="35" ry="5" fill="#000" opacity="0.10" filter="url(#${u}b)"/>
+    ${tail}
     <ellipse cx="36" cy="29" rx="13.5" ry="17.5" fill="#ee9cb9" transform="rotate(-24 36 29)"/>
     <ellipse cx="84" cy="29" rx="13.5" ry="17.5" fill="#ee9cb9" transform="rotate(24 84 29)"/>
     <ellipse cx="37.5" cy="31" rx="7" ry="10.5" fill="#fbc6d8" transform="rotate(-24 37.5 31)"/>
@@ -392,6 +417,8 @@ function pigSVG(shirt, w, opts){
     <path d="M36 88 Q60 79 84 88 L91 130 L29 130 Z" fill="url(#${u}d)"/>
     <path d="M31.5 121.5 L88.5 121.5 L90 130 L29 130 Z" fill="#ffffff" opacity="0.16"/>
     <path d="M50 94 Q47 112 51 128" stroke="#ffffff" stroke-width="3.5" opacity="0.18" fill="none" stroke-linecap="round"/>
+    <path d="M33 92 Q28 100 31 106" stroke="#f7bccf" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M87 92 Q92 100 89 106" stroke="#f7bccf" stroke-width="4" fill="none" stroke-linecap="round"/>
     ${dinoBody}
   </svg>`;
 }
@@ -405,16 +432,40 @@ function pupSVG(p, w){
     <ellipse cx="85" cy="52" rx="3.8" ry="3.2" fill="#3d2c29" opacity="0.75"/>
     <ellipse cx="38" cy="52" rx="3" ry="2.5" fill="#3d2c29" opacity="0.6"/>` : '';
   const whiteStroke = p.fur[0] === '#ffffff' ? ` stroke="#dcdcdc" stroke-width="2"` : '';
+  const hatPolice = `
+    <path d="M32 34 Q60 8 88 34 L88 42 L32 42 Z" fill="url(#${u}h)"/>
+    <path d="M30 42 Q60 34 90 42 L90 47 Q60 40 30 47 Z" fill="#1e3a8a"/>
+    <ellipse cx="60" cy="45" rx="17" ry="4" fill="#0f172a" opacity="0.85"/>
+    <circle cx="60" cy="26" r="3.4" fill="#ffd166" stroke="#b45309" stroke-width="1"/>`;
+  const hatFire = `
+    <ellipse cx="60" cy="30" rx="34" ry="8" fill="#b91c1c"/>
+    <path d="M36 30 Q36 12 60 12 Q84 12 84 30 Z" fill="url(#${u}h)"/>
+    <ellipse cx="60" cy="30" rx="34" ry="8" fill="none" stroke="#991b1b" stroke-width="1.6"/>
+    <circle cx="60" cy="25" r="5" fill="#ffe08a" stroke="#b45309" stroke-width="1.2"/>`;
+  const hatPilot = `
+    <path d="M31 38 Q32 14 60 14 Q88 14 89 38 Q60 28 31 38 Z" fill="url(#${u}h)"/>
+    <path d="M31 38 Q60 30 89 38 L89 44 Q60 37 31 44 Z" fill="#db2777" opacity="0.85"/>
+    <circle cx="45" cy="21" r="7.5" fill="#bae6fd" stroke="#ec4899" stroke-width="3"/>
+    <circle cx="75" cy="21" r="7.5" fill="#bae6fd" stroke="#ec4899" stroke-width="3"/>
+    <rect x="52" y="18" width="16" height="5" rx="2.5" fill="#ec4899"/>`;
+  const hat = p.hat === 'police' ? hatPolice : p.hat === 'fire' ? hatFire : p.hat === 'pilot' ? hatPilot : '';
   return `<svg viewBox="0 0 120 132" width="${w}" xmlns="http://www.w3.org/2000/svg">
     <defs>
+      <linearGradient id="${u}bg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${p.bg[0]}"/><stop offset="100%" stop-color="${p.bg[1]}"/>
+      </linearGradient>
       <radialGradient id="${u}f" cx="50%" cy="38%" r="78%">
         <stop offset="0%" stop-color="${p.fur[0]}"/><stop offset="100%" stop-color="${p.fur[1]}"/>
       </radialGradient>
       <linearGradient id="${u}u" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="${p.uni[0]}"/><stop offset="100%" stop-color="${p.uni[1]}"/>
       </linearGradient>
+      <linearGradient id="${u}h" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${p.hatC[0]}"/><stop offset="100%" stop-color="${p.hatC[1]}"/>
+      </linearGradient>
       <filter id="${u}b" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.7"/></filter>
     </defs>
+    ${sceneDefs(u)}
     <ellipse cx="60" cy="126" rx="35" ry="5" fill="#000" opacity="0.10" filter="url(#${u}b)"/>
     <ellipse cx="29" cy="46" rx="11.5" ry="21.5" fill="${p.ear}" transform="rotate(20 29 46)"/>
     <ellipse cx="91" cy="46" rx="11.5" ry="21.5" fill="${p.ear}" transform="rotate(-20 91 46)"/>
@@ -430,37 +481,35 @@ function pupSVG(p, w){
     <ellipse cx="60" cy="64.5" rx="6.2" ry="4.9" fill="#33241f"/>
     <ellipse cx="58" cy="62.9" rx="1.9" ry="1.1" fill="#fff" opacity="0.75"/>
     <path d="M55 76 Q60 81 65 76" stroke="#33241f" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <circle cx="34" cy="63" r="5.5" fill="#f2a5a5" opacity="0.5" filter="url(#${u}b)"/>
+    <circle cx="86" cy="63" r="5.5" fill="#f2a5a5" opacity="0.5" filter="url(#${u}b)"/>
     <path d="M38 88 Q60 80 82 88 L88 130 L32 130 Z" fill="url(#${u}u)"/>
+    <path d="M42 88 L50 96 L60 87 L70 96 L78 88" stroke="#ffffff" stroke-width="3" fill="none" opacity="0.55" stroke-linecap="round" stroke-linejoin="round"/>
     <path d="M33.5 121.5 L86.5 121.5 L88 130 L32 130 Z" fill="#ffffff" opacity="0.16"/>
-    <path d="M52 94 Q49 112 53 128" stroke="#ffffff" stroke-width="3.5" opacity="0.18" fill="none" stroke-linecap="round"/>
     <circle cx="60" cy="106" r="8.5" fill="#ffe08a" stroke="#e8a20c" stroke-width="1.5"/>
     <path d="M60 101.5 L61.9 105.4 L66.2 106 L63.1 108.6 L63.8 112.8 L60 110.8 L56.2 112.8 L56.9 108.6 L53.8 106 L58.1 105.4 Z" fill="#f59f00"/>
     <circle cx="57.4" cy="103.6" r="1.4" fill="#fff" opacity="0.8"/>
+    ${hat}
   </svg>`;
 }
 
 const CARTOON = [
-  { name:'佩奇',   kind:'pig', cheer:'哼哼哼～',   img:'images/toon_pig_red.jpg',   svg: pigSVG(['#ff6b81','#d92643'], 110) },
-  { name:'乔治',   kind:'pig', cheer:'恐龙吼吼！', img:'images/toon_pig_blue.jpg',  svg: pigSVG(['#5cb3ff','#2b7fd4'], 92, {dino:true}) },
-  { name:'猪妈妈', kind:'pig', cheer:'哼哼～',     img:'images/toon_pig_mom.jpg',   svg: pigSVG(['#ffa94d','#e8760c'], 110) },
-  { name:'阿奇',   kind:'pup', cheer:'汪汪队，立大功！', img: 'images/toon_pup_police.jpg', svg: pupSVG({fur:['#c99a6a','#a3754a'], ear:'#7c5333', uni:['#4d94ff','#1f5fc4'], muzz:'#e8c8a0'}, 110) },
-  { name:'毛毛',   kind:'pup', cheer:'汪汪！汪汪！',     img:'images/toon_pup_fire.jpg', svg: pupSVG({fur:['#ffffff','#ececec'], ear:'#f4f4f4', uni:['#ff6b6b','#d33030'], muzz:'#fdf4f4', spots:true}, 110) },
-  { name:'天天',   kind:'pup', cheer:'汪汪队，起飞喽！', img: 'images/toon_pup_pilot.jpg', svg: pupSVG({fur:['#f0c290','#d9a066'], ear:'#b9834f', uni:['#ff9ec6','#f06a9b'], muzz:'#fbe0c3'}, 110) },
+  { name:'佩奇',   kind:'pig', cheer:'哼哼哼～',   svg: pigSVG(['#ff6b81','#d92643'], 110) },
+  { name:'乔治',   kind:'pig', cheer:'恐龙吼吼！', svg: pigSVG(['#5cb3ff','#2b7fd4'], 92, {dino:true}) },
+  { name:'猪妈妈', kind:'pig', cheer:'哼哼～',     svg: pigSVG(['#ffa94d','#e8760c'], 110) },
+  { name:'阿奇',   kind:'pup', cheer:'汪汪队，立大功！', svg: pupSVG({fur:['#c99a6a','#a3754a'], ear:'#7c5333', uni:['#3b82f6','#1d4ed8'], muzz:'#e8c8a0', hat:'police', hatC:['#60a5fa','#1e40af'], bg:['#dbeeff','#b9dcff']}, 110) },
+  { name:'毛毛',   kind:'pup', cheer:'汪汪！汪汪！',     svg: pupSVG({fur:['#ffffff','#ececec'], ear:'#f4f4f4', uni:['#ef4444','#b91c1c'], muzz:'#fdf4f4', hat:'fire', hatC:['#ef4444','#b91c1c'], bg:['#ffe9e0','#ffd0c2'], spots:true}, 110) },
+  { name:'天天',   kind:'pup', cheer:'汪汪队，起飞喽！', svg: pupSVG({fur:['#f0c290','#d9a066'], ear:'#b9834f', uni:['#ec4899','#be185d'], muzz:'#fbe0c3', hat:'pilot', hatC:['#f472b6','#db2777'], bg:['#ffe4f2','#ffc2e0']}, 110) },
 ];
 
 function genCartoon(){
   const three = sample(CARTOON, 3);
   const t = pick(three);
   return {
-    useImg: !!t.img,
-    promptHTML: t.img
-      ? `<div class="cartoon-card"><span class="img-wrap big"><span class="fb">${t.svg}</span><img src="${t.img}" onerror="this.remove()"></span></div>`
-      : `<div class="cartoon-card">${t.svg}</div>`,
+    promptHTML: `<div class="cartoon-card">${t.svg}</div>`,
     promptSpeak: [`找一找，${t.name}在哪里呀？`],
     options: three.map(c => ({
-      html: c.img
-        ? `<span class="char-opt"><span class="img-wrap"><span class="fb">${c.svg}</span><img src="${c.img}" onerror="this.remove()"></span></span>`
-        : `<span class="char-opt">${c.svg}</span>`,
+      html: `<span class="char-opt">${c.svg}</span>`,
       value: c.name,
       wrongSpeak: [`这是${c.name}哦`, `再找找${t.name}～`],
     })),
@@ -498,58 +547,135 @@ function genPrincess(){
   };
 }
 
-/* ---------- 翻翻乐（记忆配对小游戏） ---------- */
-function startMemory(){
-  const picks = sample(PRINCESS, 3);
-  const cards = shuffle(picks.flatMap(p => [p, p]));
+/* ---------- 公主换装（洋娃娃换装小游戏） ---------- */
+const DRESSES = [
+  {label:'粉色蓬蓬裙', c:['#ff9ec6','#f06a9b']},
+  {label:'蓝色星星裙', c:['#74c0fc','#339af0'], star:true},
+  {label:'紫色魔法裙', c:['#b197fc','#7048e8'], star:true},
+  {label:'黄色花朵裙', c:['#ffd43b','#f59f00'], flower:true},
+  {label:'薄荷纱裙',   c:['#63e6be','#20c997'], veil:true},
+  {label:'彩虹蛋糕裙', c:['#ff8787','#ffd43b'], rainbow:true},
+];
+const HAIRSTYLES = ['双马尾','丸子头','长直发','小卷发'];
+const HAIR_ACCS = ['小皇冠','蝴蝶结','花朵环','星星夹','不戴'];
+const DZ_WOW_TEXTS = ['哇，好漂亮呀！','这条裙子真好看！','小公主最喜欢了！','打扮得像小仙女一样！'];
+
+function startDressup(){
   state.q = null;
-  state.mem = { cards, open: [], done: 0, lock: false };
-  $('#prompt-visual').innerHTML = `<div class="ask-hint">翻翻乐，找出两张一样的 🎀</div>`;
+  state.dressup = { dress: 0, hair: 0, acc: 0 };
+  $('#prompt-visual').innerHTML = '<div id="doll-stage"></div>';
   const box = $('#options');
-  box.classList.add('mem-grid');
+  box.classList.remove('mem-grid');
   box.innerHTML = '';
-  cards.forEach((c, idx) => {
+  const mk = (label, fn) => {
     const b = document.createElement('button');
-    b.className = 'mem-card';
-    b.dataset.name = c.name;
-    b.innerHTML = `<span class="mem-inner"><span class="mem-face mem-front">🎀</span>` +
-      `<span class="mem-face mem-back"><span class="img-opt"><span class="img-wrap"><span class="fb">${c.emoji}</span><img src="${c.img}" onerror="this.remove()"></span></span></span></span>`;
-    b.onclick = () => flipCard(idx, b);
+    b.className = 'option dz-btn';
+    b.innerHTML = label;
+    b.onclick = fn;
     box.appendChild(b);
+  };
+  mk('👗 换裙子', () => changeOutfit('dress'));
+  mk('💇 换发型', () => changeOutfit('hair'));
+  mk('👑 换头饰', () => changeOutfit('acc'));
+  mk('✨ 真好看', () => {
+    addStars(1);
+    confetti();
+    showPraise(pick(['👗 公主真漂亮！','👑 打扮得真好看！','🌟 小仙女下凡啦！']));
+    playTexts([pick(DZ_WOW_TEXTS)]);
   });
-  playTexts(['翻翻乐！找出两张一样的卡片！']);
+  renderDoll();
+  playTexts(['公主换装！给小公主穿上最漂亮的衣服吧！']);
 }
 
-function flipCard(idx, btn){
-  const m = state.mem;
-  if(!m || m.lock || btn.classList.contains('open') || btn.classList.contains('matched')) return;
-  btn.classList.add('open');
-  m.open.push(btn);
-  if(m.open.length < 2) return;
-  m.lock = true;
-  const a = m.open[0], b = m.open[1];
-  const same = a.dataset.name === b.dataset.name;
-  setTimeout(() => {
-    if(same){
-      a.classList.add('matched'); b.classList.add('matched');
-      a.classList.remove('open'); b.classList.remove('open');
-      m.done++;
-      playTexts(['配对成功！']);
-      if(m.done === 3){
-        addStars(3);
-        confetti();
-        showPraise('🎀 全部找到啦！+3⭐');
-        playTexts(['哇！全部都找到啦！你真棒！']);
-        clearTimeout(state.nextTimer);
-        state.nextTimer = setTimeout(() => {
-          if(!$('#game').classList.contains('hidden') && state.moduleId === 'memory') startMemory();
-        }, 3800);
-      }
-    }else{
-      a.classList.remove('open'); b.classList.remove('open');
-    }
-    m.open = []; m.lock = false;
-  }, same ? 450 : 950);
+function changeOutfit(part){
+  const d = state.dressup;
+  if(!d) return;
+  if(part === 'dress') d.dress = (d.dress + 1) % DRESSES.length;
+  if(part === 'hair') d.hair = (d.hair + 1) % HAIRSTYLES.length;
+  if(part === 'acc') d.acc = (d.acc + 1) % HAIR_ACCS.length;
+  renderDoll();
+  playTexts([pick(DZ_WOW_TEXTS)]);
+}
+
+function renderDoll(){
+  const stage = $('#doll-stage');
+  if(stage) stage.innerHTML = dollSVG();
+}
+
+function dollSVG(){
+  const u = 'g' + (++SVG_UID);
+  const d = state.dressup;
+  const dress = DRESSES[d.dress];
+  const hair = HAIRSTYLES[d.hair];
+  const acc = HAIR_ACCS[d.acc];
+  const HC = ['#f5c26b','#e0a83f'];
+
+  let backHair = '';
+  if(hair === '长直发') backHair = `<path d="M40 34 Q32 94 46 100 L74 100 Q88 94 80 34 Z" fill="url(#${u}h)"/>`;
+  if(hair === '双马尾') backHair = `<ellipse cx="32" cy="62" rx="10" ry="26" fill="url(#${u}h)"/><ellipse cx="88" cy="62" rx="10" ry="26" fill="url(#${u}h)"/>`;
+  if(hair === '小卷发') backHair = `<circle cx="37" cy="38" r="11" fill="url(#${u}h)"/><circle cx="83" cy="38" r="11" fill="url(#${u}h)"/><circle cx="33" cy="54" r="9" fill="url(#${u}h)"/><circle cx="87" cy="54" r="9" fill="url(#${u}h)"/>`;
+  const bun = hair === '丸子头' ? `<circle cx="60" cy="17" r="10" fill="url(#${u}h)"/>` : '';
+
+  let skirt = `<path d="M42 84 L28 116 Q60 125 92 116 L78 84 Z" fill="url(#${u}d)"/>`;
+  if(dress.rainbow){
+    skirt = `<path d="M42 84 L28 104 Q60 113 92 104 L78 84 Z" fill="#ff8787"/>
+      <path d="M30 102 Q60 111 90 102 L91 110 Q60 119 29 110 Z" fill="#ffd43b"/>
+      <path d="M29 108 Q60 117 91 108 L92 116 Q60 125 28 116 Z" fill="#74c0fc"/>`;
+  }
+  let deco = '';
+  if(dress.star) deco = `<path d="${SPARK}" fill="#fff" opacity="0.85" transform="translate(48,102) scale(0.7)"/><path d="${SPARK}" fill="#fff" opacity="0.85" transform="translate(64,110) scale(0.55)"/><path d="${SPARK}" fill="#fff" opacity="0.85" transform="translate(76,98) scale(0.6)"/>`;
+  if(dress.flower) deco = `<circle cx="48" cy="102" r="4" fill="#fff" opacity="0.9"/><circle cx="64" cy="110" r="4" fill="#ff8787" opacity="0.9"/><circle cx="78" cy="100" r="4" fill="#74c0fc" opacity="0.9"/>`;
+  if(dress.veil) deco = `<path d="M40 88 Q44 110 52 118" stroke="#ffffff" stroke-width="3" opacity="0.4" fill="none"/><path d="M80 88 Q76 110 68 118" stroke="#ffffff" stroke-width="3" opacity="0.4" fill="none"/>`;
+
+  let accSvg = '';
+  if(acc === '小皇冠') accSvg = `<path d="M48 18 L51 9 L57 15 L60 6 L63 15 L69 9 L72 18 Z" fill="url(#${u}g)" stroke="#d98f1f" stroke-width="1"/><circle cx="60" cy="13" r="1.6" fill="#ff6b81"/>`;
+  if(acc === '蝴蝶结') accSvg = `<path d="M60 22 Q48 14 46 22 Q45 29 58 26 Z" fill="#ff6b81"/><path d="M60 22 Q72 14 74 22 Q75 29 62 26 Z" fill="#ff6b81"/><circle cx="60" cy="23" r="3.4" fill="#e8590c"/>`;
+  if(acc === '花朵环') accSvg = `<circle cx="46" cy="18" r="3.5" fill="#ff8fab"/><circle cx="60" cy="14" r="3.5" fill="#f9a8d4"/><circle cx="74" cy="18" r="3.5" fill="#ff8fab"/><circle cx="60" cy="14" r="1.4" fill="#fff"/>`;
+  if(acc === '星星夹') accSvg = `<path d="${SPARK}" fill="#ffd43b" transform="translate(76,18) scale(0.9)"/>`;
+
+  return `<svg viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="${u}d" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${dress.c[0]}"/><stop offset="100%" stop-color="${dress.c[1]}"/>
+      </linearGradient>
+      <linearGradient id="${u}h" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${HC[0]}"/><stop offset="100%" stop-color="${HC[1]}"/>
+      </linearGradient>
+      <linearGradient id="${u}g" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#ffe08a"/><stop offset="100%" stop-color="#f0a828"/>
+      </linearGradient>
+      <radialGradient id="${u}s" cx="50%" cy="40%" r="75%">
+        <stop offset="0%" stop-color="#ffedd8"/><stop offset="100%" stop-color="#f7cfae"/>
+      </radialGradient>
+      <filter id="${u}b" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.5"/></filter>
+    </defs>
+    <ellipse cx="60" cy="144" rx="30" ry="4.5" fill="#000" opacity="0.10" filter="url(#${u}b)"/>
+    ${backHair}
+    ${bun}
+    <path d="M42 66 Q34 80 38 92" stroke="url(#${u}s)" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+    <path d="M78 66 Q86 80 82 92" stroke="url(#${u}s)" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+    <rect x="56.5" y="52" width="7" height="12" rx="3" fill="url(#${u}s)"/>
+    <path d="M44 64 Q60 56 76 64 L80 86 L40 86 Z" fill="url(#${u}d)"/>
+    <circle cx="38" cy="70" r="9" fill="url(#${u}d)"/>
+    <circle cx="82" cy="70" r="9" fill="url(#${u}d)"/>
+    ${skirt}
+    ${deco}
+    <rect x="53" y="118" width="5.5" height="16" rx="2.5" fill="url(#${u}s)"/>
+    <rect x="61.5" y="118" width="5.5" height="16" rx="2.5" fill="url(#${u}s)"/>
+    <ellipse cx="54" cy="135" rx="6" ry="3.4" fill="${dress.c[1]}"/>
+    <ellipse cx="66" cy="135" rx="6" ry="3.4" fill="${dress.c[1]}"/>
+    <circle cx="60" cy="40" r="17" fill="url(#${u}s)"/>
+    <path d="M46 32 Q60 22 74 32 Q70 27 60 26 Q50 27 46 32 Z" fill="url(#${u}h)"/>
+    <circle cx="53.5" cy="39" r="3.4" fill="#4a2b4a"/>
+    <circle cx="66.5" cy="39" r="3.4" fill="#4a2b4a"/>
+    <circle cx="54.7" cy="37.9" r="1.2" fill="#fff"/>
+    <circle cx="67.7" cy="37.9" r="1.2" fill="#fff"/>
+    <circle cx="48" cy="44" r="3.4" fill="#ff8fb0" opacity="0.6" filter="url(#${u}b)"/>
+    <circle cx="72" cy="44" r="3.4" fill="#ff8fb0" opacity="0.6" filter="url(#${u}b)"/>
+    <path d="M56 47 Q60 50 64 47" stroke="#c9705e" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <circle cx="60" cy="43" r="1.6" fill="#e8a898"/>
+    ${accSvg}
+  </svg>`;
 }
 
 const HANZI = [
@@ -713,7 +839,7 @@ function genABC(){
 const MODULES = [
   {id:'cartoon',  name:'动画明星', icon:'🐷', bg:'#ffe3f0', gen:genCartoon},
   {id:'princess', name:'公主梦幻', icon:'🦄', bg:'#ffe9f7', gen:genPrincess},
-  {id:'memory',   name:'翻翻乐',   icon:'🎀', bg:'#fff0f9', special:'memory'},
+  {id:'dressup',  name:'公主换装', icon:'👗', bg:'#fff0f9', special:'dressup'},
   {id:'count',  name:'数一数',   icon:'🔢', bg:'#ffe1ea', gen:genCount},
   {id:'hanzi',  name:'认汉字',   icon:'📖', bg:'#fff0d9', gen:genHanzi},
   {id:'shape',  name:'颜色形状', icon:'🎨', bg:'#fff9d1', gen:genShapeColor},
@@ -853,7 +979,7 @@ function startModule(id){
   $('#home').classList.add('hidden');
   $('#game').classList.remove('hidden');
   updateStars();
-  if(m.special === 'memory'){ startMemory(); return; }
+  if(m.special === 'dressup'){ startDressup(); return; }
   showQuestion();
 }
 
@@ -869,7 +995,7 @@ $('#back-btn').onclick = () => {
 
 $('#repeat-btn').onclick = () => {
   if(state.q && !state.locked) playTexts(state.q.promptSpeak);
-  else if(state.moduleId === 'memory') playTexts(['翻翻乐！找出两张一样的卡片！']);
+  else if(state.moduleId === 'dressup') playTexts(['公主换装！给小公主穿上最漂亮的衣服吧！']);
 };
 
 const muteBtn = $('#mute-btn');
