@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>宝贝学习乐园</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; padding:0; min-height:100%; }
+  body {
+    font-family: 'Comic Sans MS','Segoe UI','Microsoft YaHei','PingFang SC',sans-serif;
+    background: linear-gradient(160deg, #89d4ff 0%, #a8e6ff 30%, #fff3b0 70%, #ffd6e0 100%);
+    background-attachment: fixed;
+    color:#4a3b6b;
+    user-select:none;
+    overscroll-behavior:none;
+  }
+  #app { min-height:100vh; display:flex; flex-direction:column; }
+  .screen { flex:1; display:flex; flex-direction:column; align-items:center; padding: 18px 16px 30px; }
+  .hidden { display:none !important; }
+
+  /* ---------- 首页 ---------- */
+  .top-tools { position:fixed; top:12px; right:14px; display:flex; gap:8px; z-index:50; }
+  .tool-btn { width:44px;height:44px;border-radius:50%;border:3px solid #fff;background:#ffffffcc;font-size:20px;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,.15);font-family:inherit; }
+  h1.title {
+    font-size: clamp(30px, 6vw, 52px);
+    margin: 18px 0 6px;
+    background: linear-gradient(90deg,#ff5e7e,#ff9f43,#f9d423,#38d9a9,#4dabf7,#9775fa);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-align:center;
+    filter: drop-shadow(0 2px 0 rgba(255,255,255,.8));
+  }
+  .subtitle { text-align:center; font-size: clamp(14px,2.4vw,20px); color:#7a6aa0; margin-bottom:10px; }
+  .star-total {
+    background:#fff; border:3px solid #ffd166; color:#e8890c; font-weight:bold;
+    padding:6px 22px; border-radius:999px; font-size: clamp(18px,3vw,26px);
+    box-shadow:0 4px 0 rgba(232,137,12,.25); margin-bottom: 20px;
+  }
+  #module-grid {
+    display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 200px));
+    gap: 18px; justify-content:center; width:100%; max-width:860px;
+  }
+
+  /* ---------- 首页欢迎横幅 ---------- */
+  #welcome { cursor:pointer; margin: -4px 0 14px; text-align:center; }
+  #welcome .bubble {
+    display:inline-block; background:#fff; color:#7a5aa0; font-weight:bold;
+    font-size: clamp(14px, 2.4vw, 18px); padding: 7px 18px; border-radius: 999px;
+    box-shadow: 0 3px 0 rgba(0,0,0,.08); position:relative; margin-bottom: 2px;
+  }
+  #welcome .mascots { display:flex; justify-content:center; align-items:flex-end; gap: 2px; }
+  #welcome .m { display:inline-block; animation: hop 1.5s ease-in-out infinite; }
+  #welcome .m svg { display:block; }
+
+  /* ---------- 动画明星模块 ---------- */
+  .cartoon-card {
+    background: linear-gradient(180deg, #ffffff 55%, #fff0f5);
+    border:5px solid #ffb3c8; border-radius:26px;
+    padding: 8px 26px 4px; box-shadow:0 8px 0 rgba(0,0,0,.08), 0 14px 30px rgba(255,143,176,.25); display:inline-block;
+  }
+  .cartoon-card svg { width: clamp(110px, 20vw, 150px); height:auto; display:block; }
+  .char-opt { display:flex; align-items:flex-end; justify-content:center; }
+  .char-opt svg { width: clamp(84px, 15vw, 126px); height:auto; display:block; }
+  @keyframes hop { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-9px); } }
+  .module-card {
+    border:4px solid #fff; border-radius: 28px; padding: 20px 10px 16px; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    box-shadow: 0 8px 0 rgba(0,0,0,.12), 0 12px 24px rgba(0,0,0,.10);
+    transition: transform .15s ease;
+    font-family:inherit;
+  }
+  .module-card:hover { transform: translateY(-4px) scale(1.03); }
+  .module-card:active { transform: translateY(2px); box-shadow: 0 4px 0 rgba(0,0,0,.12); }
+  .module-card .m-icon { font-size: clamp(44px, 8vw, 64px); line-height:1; }
+  .module-card .m-name { font-size: clamp(18px, 3.2vw, 26px); font-weight:bold; color:#5a4a80; }
+  .parent-hint { margin-top:26px; font-size:13px; color:#8b7ab0; text-align:center; line-height:1.6; max-width:720px; }
+
+  /* ---------- 游戏页 ---------- */
+  .game-header {
+    width:100%; max-width: 900px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    margin-bottom: 8px;
+  }
+  #back-btn {
+    border:3px solid #fff; background:#fff; color:#5a4a80; font-weight:bold;
+    border-radius:999px; padding:8px 18px; font-size:18px; cursor:pointer;
+    box-shadow:0 4px 0 rgba(0,0,0,.12); font-family:inherit;
+  }
+  #game-title { font-size: clamp(20px,3.6vw,30px); font-weight:bold; color:#5a4a80; }
+  .game-star { font-size: clamp(18px,3vw,26px); font-weight:bold; color:#e8890c; background:#fff; border:3px solid #ffd166; border-radius:999px; padding:4px 16px; white-space:nowrap; }
+
+  #question-area { width:100%; max-width:900px; display:flex; flex-direction:column; align-items:center; gap: 14px; }
+  #prompt-visual { min-height: 150px; display:flex; align-items:center; justify-content:center; width:100%; }
+
+  .count-grid { display:flex; flex-wrap:wrap; justify-content:center; gap: 6px 16px; max-width: 660px; }
+  .count-item { font-size: clamp(34px, 7vw, 60px); animation: pop-in .4s both; }
+
+  .hanzi-card { background:#fff; border:5px solid #ffd166; border-radius:26px; padding: 8px 34px 16px; text-align:center; box-shadow:0 8px 0 rgba(0,0,0,.08); }
+  .hanzi-card .pinyin { color:#ff8fab; font-weight:bold; font-size: clamp(18px,3vw,26px); }
+  .hanzi-card .hanzi { font-size: clamp(64px, 14vw, 120px); font-weight:bold; color:#5a4a80; line-height:1.1; }
+
+  .abc-card { background:#fff; border:5px solid #c5a3ff; border-radius:26px; padding: 10px 30px 16px; text-align:center; box-shadow:0 8px 0 rgba(0,0,0,.08); }
+  .abc-card .letter { font-size: clamp(56px, 12vw, 100px); font-weight:bold; color:#7c4dff; line-height:1.05; }
+  .abc-card .abc-word { font-size: clamp(22px,4vw,34px); font-weight:bold; color:#5a4a80; }
+
+  .add-row { display:flex; align-items:center; gap: 12px; flex-wrap:wrap; justify-content:center; }
+  .add-group { display:flex; flex-wrap:wrap; gap:2px 10px; max-width: 210px; justify-content:center; }
+  .add-group .a-item { font-size: clamp(28px,5vw,44px); }
+  .add-op { font-size: clamp(30px,6vw,52px); font-weight:bold; color:#5a4a80; }
+  .ask-hint { font-size: clamp(26px,5vw,40px); color:#5a4a80; font-weight:bold; }
+
+  #options { display:flex; gap: 18px; flex-wrap:wrap; justify-content:center; width:100%; }
+  .option {
+    min-width: clamp(120px, 24vw, 190px);
+    min-height: clamp(110px, 22vw, 180px);
+    border-radius: 26px; border:5px solid #ffd166; background:#fff;
+    font-size: clamp(40px, 9vw, 72px); font-weight:bold; color:#5a4a80;
+    cursor:pointer; box-shadow: 0 8px 0 rgba(0,0,0,.12);
+    display:flex; align-items:center; justify-content:center;
+    transition: transform .12s ease; font-family:inherit; padding:10px;
+    touch-action: manipulation;
+  }
+  .option:hover:not(:disabled) { transform: translateY(-3px) scale(1.02); }
+  .option:active:not(:disabled) { transform: translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.12); }
+  .option.correct { background:#c8f7d0; border-color:#51cf66; animation: bounce .5s; }
+  .option.wrong { opacity:.35; filter: grayscale(.7); animation: shake .4s; }
+  .option:disabled { cursor: default; }
+
+  .shape { width: 72%; aspect-ratio: 1/1; max-width:130px; }
+  .sh-circle { border-radius:50%; }
+  .sh-square { border-radius:10px; }
+  .sh-triangle { clip-path: polygon(50% 0, 0 100%, 100% 100%); }
+  .sh-diamond { transform: rotate(45deg) scale(.88); border-radius:12px; }
+  .sh-star { clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+
+  #repeat-btn {
+    border:3px solid #fff; background:#ffffffd9; color:#5a4a80; font-weight:bold;
+    border-radius:999px; padding:8px 22px; font-size:17px; cursor:pointer;
+    box-shadow:0 4px 0 rgba(0,0,0,.10); font-family:inherit;
+    touch-action: manipulation;
+  }
+
+  /* ---------- 特效 ---------- */
+  #praise-overlay {
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    pointer-events:none; z-index:80;
+  }
+  #praise-overlay .praise-text {
+    font-size: clamp(44px, 10vw, 90px); font-weight:bold; color:#fff;
+    text-shadow: 0 4px 0 #ff8fab, 0 8px 18px rgba(0,0,0,.25);
+    animation: praise-zoom .55s ease both;
+  }
+  #confetti-layer { position:fixed; inset:0; pointer-events:none; z-index:90; overflow:hidden; }
+  .confetti { position:absolute; top:-50px; animation: fall linear forwards; }
+
+  @keyframes pop-in { from { transform: scale(0); } 70% { transform: scale(1.15);} to { transform: scale(1);} }
+  @keyframes bounce { 0%{transform:scale(1)} 40%{transform:scale(1.12)} 70%{transform:scale(.96)} 100%{transform:scale(1)} }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+  @keyframes praise-zoom { 0%{transform:scale(.3);opacity:0} 60%{transform:scale(1.15);opacity:1} 100%{transform:scale(1);opacity:1} }
+  @keyframes fall { to { transform: translateY(115vh) rotate(340deg); } }
+  .pop-anim { animation: bounce .5s; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 首页 -->
+  <div id="home" class="screen">
+    <div class="top-tools">
+      <button class="tool-btn" id="mute-btn" title="声音开关">🔊</button>
+      <button class="tool-btn" id="fs-btn" title="全屏">⛶</button>
+    </div>
+    <h1 class="title">🌈 宝贝学习乐园</h1>
+    <div class="subtitle">给最棒的宝贝 ⭐</div>
+    <div id="welcome" title="点一点听佩奇和你打招呼">
+      <div class="bubble">你好呀！一起玩吧～</div>
+      <div class="mascots"></div>
+    </div>
+    <div class="star-total">⭐ <span id="total-stars">0</span></div>
+    <div id="module-grid"></div>
+    <div class="parent-hint">
+      💡 给爸爸妈妈：建议用 Edge 或 Chrome 浏览器打开，调大音量；每天陪宝贝玩 10–15 分钟最合适。<br>
+      点哪个卡片就玩哪个，答对一题收一颗小星星，连对 5 题有神秘大奖！
+    </div>
+  </div>
+
+  <!-- 游戏页 -->
+  <div id="game" class="screen hidden">
+    <div class="game-header">
+      <button id="back-btn">🏠 回家</button>
+      <div id="game-title"></div>
+      <div class="game-star">⭐ <span id="game-stars">0</span></div>
+    </div>
+    <div id="question-area">
+      <div id="prompt-visual"></div>
+      <button id="repeat-btn">🔊 再听一遍</button>
+      <div id="options"></div>
+    </div>
+  </div>
+
+  <div id="praise-overlay"><div class="praise-text" id="praise-text"></div></div>
+  <div id="confetti-layer"></div>
+</div>
+
+<script src="audio-data.js"></script>
+<script>
+/* ================= 工具函数 ================= */
+const $ = s => document.querySelector(s);
+const pick = a => a[Math.floor(Math.random()*a.length)];
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function sample(arr,k){ return shuffle(arr.slice()).slice(0,k); }
+const CN_NUM = ['零','一','二','三','四','五','六','七','八','九','十'];
+
+function numberOptions(n, k, max){
+  const s = new Set([n]); let guard = 0;
+  while(s.size < k && guard++ < 60){
+    const d = (Math.random() < .5 ? -1 : 1) * (1 + Math.floor(Math.random()*3));
+    const v = n + d;
+    if(v >= 1 && v <= (max||10)) s.add(v);
+  }
+  return shuffle([...s]);
+}
+
+/* ================= 语音 ================= */
+let muted = false;
+try { muted = localStorage.getItem('baby_muted') === '1'; } catch(e){}
+const synth = ('speechSynthesis' in window) ? window.speechSynthesis : null;
+
+function pickVoice(lang){
+  if(!synth) return null;
+  try{
+    const vs = synth.getVoices();
+    if(!vs.length) return null;
+    const p = lang.slice(0,2).toLowerCase();
+    const match = re => v => v.lang.toLowerCase().startsWith(p) && re.test(v.name);
+    // 优先"在线自然语音"（Edge 提供，音色最甜最自然），其次离线语音
+    const online = p === 'zh' ? /Xiaoyi Online|Xiaoxiao Online|Xiaochen Online|Xiaomo Online|Yunxi Online|Yunyang Online/i
+                              : /Jenny Online|Aria Online|Emma Online/i;
+    const offline = p === 'zh' ? /Xiaoxiao|Xiaoyi|Huihui|Yaoyao|Tingting|Yunyang|Kangkang/i
+                               : /Aria|Jenny|Zira|Guy|Emma/i;
+    return vs.find(match(online)) || vs.find(match(offline))
+        || vs.find(v => v.lang.toLowerCase().startsWith(p)) || null;
+  }catch(e){ return null; }
+}
+
+function toSeq(x){ return typeof x === 'string' ? [{t:x}] : x; }
+
+function speakSeq(seq, done){
+  seq = toSeq(seq);
+  if(muted || !synth){ if(done) setTimeout(done, 500); return; }
+  try{
+    synth.cancel();
+    let i = 0;
+    const next = () => {
+      if(i >= seq.length){ if(done) done(); return; }
+      const item = seq[i++];
+      const t = item.t, lang = item.lang || 'zh-CN';
+      const v = pickVoice(lang);
+      // 在线自然音色本身就很甜，不额外变调；离线音色稍微提高音调更像小妹妹
+      const natural = v && /Online|\(Natural\)/i.test(v.name);
+      const u = new SpeechSynthesisUtterance(t);
+      u.lang = lang;
+      u.rate = item.rate != null ? item.rate : (natural ? 0.95 : 0.9);
+      u.pitch = item.pitch != null ? item.pitch : (natural ? 1.0 : 1.12);
+      if(v) u.voice = v;
+      let finished = false;
+      const finish = () => { if(!finished){ finished = true; next(); } };
+      u.onend = finish; u.onerror = finish;
+      const guard = setTimeout(() => { try{ synth.cancel(); }catch(e){} finish(); },
+                                Math.max(2600, t.length * 380));
+      u.onend = () => { clearTimeout(guard); finish(); };
+      u.onerror = () => { clearTimeout(guard); finish(); };
+      synth.speak(u);
+    };
+    next();
+  }catch(e){ if(done) setTimeout(done, 300); }
+}
+
+if(synth){ try{ synth.getVoices(); synth.onvoiceschanged = () => synth.getVoices(); }catch(e){} }
+
+/* ================= 真声音频播放（优先），系统语音兜底 ================= */
+const textToKey = {};
+if (typeof AUDIO_DATA !== 'undefined') {
+  for (const k in AUDIO_DATA) textToKey[AUDIO_DATA[k].t] = k;
+}
+let currentAudio = null;
+function stopCurrentAudio(){
+  if(currentAudio){
+    try{ currentAudio.pause(); }catch(e){}
+    currentAudio.onended = currentAudio.onerror = null;
+    currentAudio = null;
+  }
+}
+/* texts: 字符串数组。每个字符串若在语音包里有对应的预录音频则播放真声，否则用系统语音朗读 */
+function playTexts(texts, done){
+  if(muted){ if(done) setTimeout(done, 400); return; }
+  const items = (Array.isArray(texts) ? texts : [texts]).filter(x => x);
+  let i = 0;
+  const next = () => {
+    if(i >= items.length){ if(done) done(); return; }
+    const text = items[i++];
+    const key = textToKey[text];
+    stopCurrentAudio();
+    if(key && AUDIO_DATA[key] && AUDIO_DATA[key].s){
+      const a = new Audio(AUDIO_DATA[key].s);
+      currentAudio = a;
+      const fin = () => { a.onended = a.onerror = null; setTimeout(next, 140); };
+      a.onended = fin; a.onerror = fin;
+      a.play().catch(() => speakSeq([{ t: text }], next));
+    }else{
+      speakSeq([{ t: text }], next);
+    }
+  };
+  next();
+}
+
+/* ================= 题库 ================= */
+const COUNT_EMOJIS = [['🍎','苹果'],['🌟','星星'],['🐠','小鱼'],['🎈','气球'],['🦋','蝴蝶'],['🍓','草莓'],['🐷','小猪'],['🐶','小狗']];
+
+/* ================= 卡通角色（原创精绘 SVG 插画风，避免使用版权图片） ================= */
+let SVG_UID = 0;
+
+function pigSVG(shirt, w, opts){
+  opts = opts || {};
+  w = w || 110;
+  const u = 'g' + (++SVG_UID);
+  const dino = opts.dino ? `
+    <linearGradient id="${u}g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8ce99a"/><stop offset="100%" stop-color="#37b24d"/>
+    </linearGradient>` : '';
+  const dinoBody = opts.dino ? `
+    <g transform="translate(71,92) scale(0.92)">
+      <ellipse cx="20" cy="41" rx="15" ry="3" fill="#000" opacity="0.08"/>
+      <path d="M10 40 Q4 28 12 22 Q10 10 22 8 Q34 6 36 18 L36 40 Z" fill="url(#${u}g)"/>
+      <path d="M17 7 L21 -1 L27 6 Z" fill="#2f9e44"/>
+      <path d="M25 6 L29 -2 L35 5 Z" fill="#2f9e44"/>
+      <circle cx="29" cy="15" r="2.3" fill="#212529"/>
+      <circle cx="29.8" cy="14.1" r="0.8" fill="#fff"/>
+      <ellipse cx="19" cy="34" rx="7" ry="5" fill="#d3f9d8"/>
+      <path d="M36 22 Q45 24 41 33" stroke="#2f9e44" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    </g>` : '';
+  return `<svg viewBox="0 0 120 132" width="${w}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="${u}s" cx="50%" cy="38%" r="78%">
+        <stop offset="0%" stop-color="#ffdbe7"/><stop offset="60%" stop-color="#f9bccf"/><stop offset="100%" stop-color="#ee9cb9"/>
+      </radialGradient>
+      <linearGradient id="${u}d" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${shirt[0]}"/><stop offset="100%" stop-color="${shirt[1]}"/>
+      </linearGradient>
+      ${dino}
+      <filter id="${u}b" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.7"/></filter>
+    </defs>
+    <ellipse cx="60" cy="126" rx="35" ry="5" fill="#000" opacity="0.10" filter="url(#${u}b)"/>
+    <ellipse cx="36" cy="29" rx="13.5" ry="17.5" fill="#ee9cb9" transform="rotate(-24 36 29)"/>
+    <ellipse cx="84" cy="29" rx="13.5" ry="17.5" fill="#ee9cb9" transform="rotate(24 84 29)"/>
+    <ellipse cx="37.5" cy="31" rx="7" ry="10.5" fill="#fbc6d8" transform="rotate(-24 37.5 31)"/>
+    <ellipse cx="82.5" cy="31" rx="7" ry="10.5" fill="#fbc6d8" transform="rotate(24 82.5 31)"/>
+    <circle cx="60" cy="56" r="37" fill="url(#${u}s)"/>
+    <circle cx="33" cy="62" r="7" fill="#ff8fb0" opacity="0.5" filter="url(#${u}b)"/>
+    <circle cx="87" cy="62" r="7" fill="#ff8fb0" opacity="0.5" filter="url(#${u}b)"/>
+    <circle cx="46" cy="47" r="5.6" fill="#4a2b4a"/>
+    <circle cx="74" cy="47" r="5.6" fill="#4a2b4a"/>
+    <circle cx="47.9" cy="44.9" r="2" fill="#fff"/>
+    <circle cx="75.9" cy="44.9" r="2" fill="#fff"/>
+    <circle cx="44.4" cy="49.2" r="1" fill="#fff" opacity="0.75"/>
+    <circle cx="72.4" cy="49.2" r="1" fill="#fff" opacity="0.75"/>
+    <ellipse cx="60" cy="68" rx="17.5" ry="12.5" fill="#fdd7e4"/>
+    <ellipse cx="60" cy="68" rx="17.5" ry="12.5" fill="none" stroke="#ee9dbb" stroke-width="1.2" opacity="0.65"/>
+    <ellipse cx="53.5" cy="68" rx="3.1" ry="3.9" fill="#c9648c"/>
+    <ellipse cx="66.5" cy="68" rx="3.1" ry="3.9" fill="#c9648c"/>
+    <path d="M53 84 Q60 90 67 84" stroke="#b25a7e" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M36 88 Q60 79 84 88 L91 130 L29 130 Z" fill="url(#${u}d)"/>
+    <path d="M31.5 121.5 L88.5 121.5 L90 130 L29 130 Z" fill="#ffffff" opacity="0.16"/>
+    <path d="M50 94 Q47 112 51 128" stroke="#ffffff" stroke-width="3.5" opacity="0.18" fill="none" stroke-linecap="round"/>
+    ${dinoBody}
+  </svg>`;
+}
+
+function pupSVG(p, w){
+  w = w || 110;
+  const u = 'g' + (++SVG_UID);
+  const spots = p.spots ? `
+    <ellipse cx="45" cy="32" rx="5.5" ry="4.5" fill="#3d2c29" opacity="0.9" transform="rotate(-14 45 32)"/>
+    <ellipse cx="73" cy="28.5" rx="4.4" ry="3.6" fill="#3d2c29" opacity="0.9" transform="rotate(12 73 28.5)"/>
+    <ellipse cx="85" cy="52" rx="3.8" ry="3.2" fill="#3d2c29" opacity="0.75"/>
+    <ellipse cx="38" cy="52" rx="3" ry="2.5" fill="#3d2c29" opacity="0.6"/>` : '';
+  const whiteStroke = p.fur[0] === '#ffffff' ? ` stroke="#dcdcdc" stroke-width="2"` : '';
+  return `<svg viewBox="0 0 120 132" width="${w}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="${u}f" cx="50%" cy="38%" r="78%">
+        <stop offset="0%" stop-color="${p.fur[0]}"/><stop offset="100%" stop-color="${p.fur[1]}"/>
+      </radialGradient>
+      <linearGradient id="${u}u" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${p.uni[0]}"/><stop offset="100%" stop-color="${p.uni[1]}"/>
+      </linearGradient>
+      <filter id="${u}b" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.7"/></filter>
+    </defs>
+    <ellipse cx="60" cy="126" rx="35" ry="5" fill="#000" opacity="0.10" filter="url(#${u}b)"/>
+    <ellipse cx="29" cy="46" rx="11.5" ry="21.5" fill="${p.ear}" transform="rotate(20 29 46)"/>
+    <ellipse cx="91" cy="46" rx="11.5" ry="21.5" fill="${p.ear}" transform="rotate(-20 91 46)"/>
+    <circle cx="60" cy="56" r="36" fill="url(#${u}f)"${whiteStroke}/>
+    ${spots}
+    <ellipse cx="60" cy="70.5" rx="16.5" ry="12" fill="${p.muzz}"/>
+    <circle cx="46" cy="48" r="5.6" fill="#33241f"/>
+    <circle cx="74" cy="48" r="5.6" fill="#33241f"/>
+    <circle cx="47.9" cy="45.9" r="2" fill="#fff"/>
+    <circle cx="75.9" cy="45.9" r="2" fill="#fff"/>
+    <circle cx="44.4" cy="50.2" r="1" fill="#fff" opacity="0.75"/>
+    <circle cx="72.4" cy="50.2" r="1" fill="#fff" opacity="0.75"/>
+    <ellipse cx="60" cy="64.5" rx="6.2" ry="4.9" fill="#33241f"/>
+    <ellipse cx="58" cy="62.9" rx="1.9" ry="1.1" fill="#fff" opacity="0.75"/>
+    <path d="M55 76 Q60 81 65 76" stroke="#33241f" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M38 88 Q60 80 82 88 L88 130 L32 130 Z" fill="url(#${u}u)"/>
+    <path d="M33.5 121.5 L86.5 121.5 L88 130 L32 130 Z" fill="#ffffff" opacity="0.16"/>
+    <path d="M52 94 Q49 112 53 128" stroke="#ffffff" stroke-width="3.5" opacity="0.18" fill="none" stroke-linecap="round"/>
+    <circle cx="60" cy="106" r="8.5" fill="#ffe08a" stroke="#e8a20c" stroke-width="1.5"/>
+    <path d="M60 101.5 L61.9 105.4 L66.2 106 L63.1 108.6 L63.8 112.8 L60 110.8 L56.2 112.8 L56.9 108.6 L53.8 106 L58.1 105.4 Z" fill="#f59f00"/>
+    <circle cx="57.4" cy="103.6" r="1.4" fill="#fff" opacity="0.8"/>
+  </svg>`;
+}
+
+const CARTOON = [
+  { name:'佩奇',   kind:'pig', cheer:'哼哼哼～',   svg: pigSVG(['#ff6b81','#d92643'], 110) },
+  { name:'乔治',   kind:'pig', cheer:'恐龙吼吼！', svg: pigSVG(['#5cb3ff','#2b7fd4'], 92, {dino:true}) },
+  { name:'猪妈妈', kind:'pig', cheer:'哼哼～',     svg: pigSVG(['#ffa94d','#e8760c'], 110) },
+  { name:'阿奇',   kind:'pup', cheer:'汪汪队，立大功！', svg: pupSVG({fur:['#c99a6a','#a3754a'], ear:'#7c5333', uni:['#4d94ff','#1f5fc4'], muzz:'#e8c8a0'}, 110) },
+  { name:'毛毛',   kind:'pup', cheer:'汪汪！汪汪！',     svg: pupSVG({fur:['#ffffff','#ececec'], ear:'#f4f4f4', uni:['#ff6b6b','#d33030'], muzz:'#fdf4f4', spots:true}, 110) },
+  { name:'天天',   kind:'pup', cheer:'汪汪队，起飞喽！', svg: pupSVG({fur:['#f0c290','#d9a066'], ear:'#b9834f', uni:['#ff9ec6','#f06a9b'], muzz:'#fbe0c3'}, 110) },
+];
+
+function genCartoon(){
+  const three = sample(CARTOON, 3);
+  const t = pick(three);
+  return {
+    promptHTML: `<div class="cartoon-card">${t.svg}</div>`,
+    promptSpeak: [`找一找，${t.name}在哪里呀？`],
+    options: three.map(c => ({
+      html: `<span class="char-opt">${c.svg}</span>`,
+      value: c.name,
+      wrongSpeak: [`这是${c.name}哦`, `再找找${t.name}～`],
+    })),
+    answerValue: t.name,
+    correctSpeak: [`对啦，是${t.name}！`, t.cheer],
+  };
+}
+
+/* ---------- 公主梦幻 ---------- */
+const PRINCESS = [['独角兽','🦄'],['公主','👸'],['仙女','🧚'],['美人鱼','🧜‍♀️'],['城堡','🏰'],['皇冠','👑'],['蝴蝶结','🎀'],['水晶球','🔮']];
+
+function genPrincess(){
+  const three = sample(PRINCESS, 3);
+  const t = pick(three);
+  return {
+    promptHTML: `<div class="ask-hint">魔法时间 ✨🦄</div>`,
+    promptSpeak: [`找一找，${t[0]}在哪里呀？`],
+    options: three.map(it => ({
+      html: it[1], value: it[0],
+      wrongSpeak: [`这是${it[0]}哦`, `再找找${t[0]}～`],
+    })),
+    answerValue: t[0],
+    correctSpeak: [`对啦，${t[0]}找到喽！`],
+  };
+}
+
+const HANZI = [
+  {ch:'山', py:'shān', emoji:'⛰️', phrase:'大山'},
+  {ch:'水', py:'shuǐ', emoji:'💧', phrase:'河水'},
+  {ch:'火', py:'huǒ', emoji:'🔥', phrase:'火苗'},
+  {ch:'日', py:'rì',   emoji:'☀️', phrase:'太阳'},
+  {ch:'月', py:'yuè',  emoji:'🌙', phrase:'月亮'},
+  {ch:'木', py:'mù',   emoji:'🌳', phrase:'大树'},
+  {ch:'花', py:'huā',  emoji:'🌸', phrase:'花朵'},
+  {ch:'雨', py:'yǔ',   emoji:'🌧️', phrase:'下雨'},
+  {ch:'雪', py:'xuě',  emoji:'❄️', phrase:'雪花'},
+  {ch:'云', py:'yún',  emoji:'☁️', phrase:'白云'},
+  {ch:'大', py:'dà',   emoji:'🐘', phrase:'很大'},
+  {ch:'小', py:'xiǎo', emoji:'🐜', phrase:'很小'},
+  {ch:'鸟', py:'niǎo', emoji:'🐦', phrase:'小鸟'},
+  {ch:'鱼', py:'yú',   emoji:'🐟', phrase:'小鱼'},
+];
+
+const COLORS = [
+  ['红色','#ff4d4d'],['蓝色','#3b82f6'],['黄色','#fde047'],['绿色','#22c55e'],
+  ['橙色','#fb923c'],['紫色','#a855f7'],['粉色','#f9a8d4'],['黑色','#334155'],
+];
+const SHAPES = [
+  ['圆形','sh-circle'],['正方形','sh-square'],['三角形','sh-triangle'],
+  ['星形','sh-star'],['菱形','sh-diamond'],
+];
+
+const ITEMS = [
+  ['小猫','🐱'],['小狗','🐶'],['小兔','🐰'],['大象','🐘'],['狮子','🦁'],['小鱼','🐟'],
+  ['小鸟','🐦'],['蝴蝶','🦋'],['熊猫','🐼'],['猴子','🐵'],
+  ['苹果','🍎'],['香蕉','🍌'],['西瓜','🍉'],['草莓','🍓'],['葡萄','🍇'],['橘子','🍊'],
+];
+
+const ABC = [
+  ['A','Apple','🍎'],['B','Banana','🍌'],['C','Cat','🐱'],['D','Dog','🐶'],
+  ['E','Elephant','🐘'],['F','Fish','🐟'],['G','Grape','🍇'],['H','House','🏠'],
+  ['I','Ice cream','🍦'],['J','Juice','🧃'],['K','Kite','🪁'],['L','Lion','🦁'],
+  ['M','Moon','🌙'],['N','Nose','👃'],['O','Orange','🍊'],['P','Panda','🐼'],
+  ['Q','Queen','👸'],['R','Rabbit','🐰'],['S','Sun','☀️'],['T','Tiger','🐯'],
+  ['U','Umbrella','☂️'],['V','Violin','🎻'],['W','Watermelon','🍉'],['X','Fox','🦊'],
+  ['Y','Yellow','🟡'],['Z','Zebra','🦓'],
+];
+const LETTER_PALETTE = ['#ff6b8a','#4dabf7','#51cf66','#f59f00','#9775fa','#ff922b'];
+
+const PRAISE = ['太棒了！','答对啦！','真聪明！','好厉害呀！','哇，你真棒！','完全正确！','宝贝最棒啦！','佩奇给你鼓掌！','汪汪队都为你欢呼！'];
+const TRY_AGAIN = ['再试一次哦～','差一点点啦～','没关系，再想想～','加油，再选一次～'];
+
+/* ================= 出题器 ================= */
+function genCount(){
+  const [e, name] = pick(COUNT_EMOJIS);
+  const n = 1 + Math.floor(Math.random()*10);
+  const opts = numberOptions(n, 3, 10);
+  const items = Array.from({length:n}, (_,i) =>
+    `<span class="count-item" style="animation-delay:${(i*0.12).toFixed(2)}s">${e}</span>`).join('');
+  return {
+    promptHTML: `<div class="count-grid">${items}</div>`,
+    promptSpeak: [`数一数，这里有几个${name}呀？`],
+    options: opts.map(v => ({html:String(v), value:String(v)})),
+    answerValue: String(n),
+    correctSpeak: [`${Array.from({length:n},(_,i)=>i+1).join('、')}，一共${CN_NUM[n]}个！`],
+    nextDelay: 3400,
+  };
+}
+
+function genHanzi(){
+  const three = sample(HANZI, 3);
+  const t = pick(three);
+  return {
+    promptHTML: `<div class="hanzi-card"><div class="pinyin">${t.py}</div><div class="hanzi">${t.ch}</div></div>`,
+    promptSpeak: [`${t.ch}。${t.phrase}的${t.ch}。你看，哪个是${t.phrase}呀？`],
+    options: three.map(h => ({
+      html: h.emoji, value: h.ch,
+      wrongSpeak: [`这是“${h.ch}”，${h.phrase}的“${h.ch}”哦～`],
+    })),
+    answerValue: t.ch,
+    correctSpeak: [`对啦，${t.ch}，${t.phrase}的${t.ch}！`],
+  };
+}
+
+function genShapeColor(){
+  if(Math.random() < .5){
+    const three = sample(COLORS, 3);
+    const t = pick(three);
+    return {
+      promptHTML: `<div class="ask-hint">猜猜看 👀</div>`,
+      promptSpeak: [`找一找，哪个是${t[0]}呀？`],
+      options: three.map(c => ({
+        html: `<span class="shape sh-circle" style="background:${c[1]}"></span>`,
+        value: c[0], wrongSpeak: [`这是${c[0]}哦～`],
+      })),
+      answerValue: t[0],
+      correctSpeak: [`对，这就是${t[0]}！`],
+    };
+  }else{
+    const three = sample(SHAPES, 3);
+    const t = pick(three);
+    const col = pick(COLORS)[1];
+    return {
+      promptHTML: `<div class="ask-hint">形状来啦 👀</div>`,
+      promptSpeak: [`找一找，哪个是${t[0]}呀？`],
+      options: three.map(s => ({
+        html: `<span class="shape ${s[1]}" style="background:${col}"></span>`,
+        value: s[0], wrongSpeak: [`这是${s[0]}哦～`],
+      })),
+      answerValue: t[0],
+      correctSpeak: [`对，这就是${t[0]}！`],
+    };
+  }
+}
+
+function genAnimal(){
+  const three = sample(ITEMS, 3);
+  const t = pick(three);
+  return {
+    promptHTML: `<div class="ask-hint">眼睛找一找 🔍</div>`,
+    promptSpeak: [`找一找，${t[0]}在哪里呀？`],
+    options: three.map(it => ({
+      html: it[1], value: it[0],
+      wrongSpeak: [`这是${it[0]}哦`, `再找找${t[0]}～`],
+    })),
+    answerValue: t[0],
+    correctSpeak: [`对啦，${t[0]}找到喽！`],
+  };
+}
+
+function genAdd(){
+  const a = 1 + Math.floor(Math.random()*4);        // 1..4
+  const b = 1 + Math.floor(Math.random()*(5-a));    // 1..(5-a)，总和不超过5
+  const sum = a + b;
+  const opts = numberOptions(sum, 3, 6);
+  const dots = (e,n) => Array.from({length:n},()=>`<span class="a-item">${e}</span>`).join('');
+  return {
+    promptHTML: `<div class="add-row"><div class="add-group">${dots('🍎',a)}</div><div class="add-op">＋</div><div class="add-group">${dots('🍓',b)}</div><div class="add-op">＝</div><div class="add-op">❓</div></div>`,
+    promptSpeak: [`${CN_NUM[a]}加${CN_NUM[b]}，等于几呀？`],
+    options: opts.map(v => ({html:String(v), value:String(v)})),
+    answerValue: String(sum),
+    correctSpeak: [`${CN_NUM[a]}加${CN_NUM[b]}等于${CN_NUM[sum]}！`],
+  };
+}
+
+function genABC(){
+  const three = sample(ABC, 3);
+  const t = pick(three);
+  return {
+    promptHTML: `<div class="abc-card"><div class="letter">${t[0]} ${t[0].toLowerCase()}</div></div>`,
+    promptSpeak: [`找一找，哪个是字母${t[0]}呀？`],
+    options: three.map(l => ({
+      html: `<span style="color:${LETTER_PALETTE[l[0].charCodeAt(0) % LETTER_PALETTE.length]}">${l[0]}</span>`,
+      value: l[0], wrongSpeak: [`这是字母${l[0]}哦～`],
+    })),
+    answerValue: t[0],
+    correctHTML: `<div class="abc-card"><div class="letter">${t[0]}</div><div class="abc-word">${t[1]} ${t[2]}</div></div>`,
+    correctSpeak: [
+      `${t[0]}! ${t[1]}!`,
+      ...(t[0] === 'X' ? ['Fox的尾巴上就藏着字母X哦！'] : []),
+    ],
+  };
+}
+
+const MODULES = [
+  {id:'cartoon',  name:'动画明星', icon:'🐷', bg:'#ffe3f0', gen:genCartoon},
+  {id:'princess', name:'公主梦幻', icon:'🦄', bg:'#ffe9f7', gen:genPrincess},
+  {id:'count',  name:'数一数',   icon:'🔢', bg:'#ffe1ea', gen:genCount},
+  {id:'hanzi',  name:'认汉字',   icon:'📖', bg:'#fff0d9', gen:genHanzi},
+  {id:'shape',  name:'颜色形状', icon:'🎨', bg:'#fff9d1', gen:genShapeColor},
+  {id:'animal', name:'动物水果', icon:'🐼', bg:'#ddf5e3', gen:genAnimal},
+  {id:'add',    name:'简单加法', icon:'🧮', bg:'#dbeeff', gen:genAdd},
+  {id:'abc',    name:'英文字母', icon:'🔤', bg:'#eadcff', gen:genABC},
+];
+
+/* ================= 游戏流程 ================= */
+const state = {
+  moduleId: null,
+  sessionCorrect: 0,
+  stars: 0,
+  q: null,
+  locked: false,
+};
+try { state.stars = parseInt(localStorage.getItem('baby_stars') || '0', 10) || 0; } catch(e){}
+
+function addStars(n){
+  state.stars += n;
+  try { localStorage.setItem('baby_stars', String(state.stars)); } catch(e){}
+  updateStars();
+}
+function updateStars(){
+  ['#total-stars', '#game-stars'].forEach(sel => {
+    const el = $(sel);
+    if(!el) return;
+    el.textContent = state.stars;
+    el.classList.remove('pop-anim'); void el.offsetWidth; el.classList.add('pop-anim');
+  });
+}
+
+function confetti(){
+  const layer = $('#confetti-layer');
+  const pieces = ['🎉','⭐','🌟','✨','💖','🎈','🐷','🐶','🌸','🦄','🎀'];
+  for(let i = 0; i < 18; i++){
+    const p = document.createElement('div');
+    p.className = 'confetti';
+    p.textContent = pick(pieces);
+    p.style.left = Math.random()*100 + 'vw';
+    p.style.fontSize = (18 + Math.random()*22) + 'px';
+    p.style.animationDuration = (0.9 + Math.random()*0.7) + 's';
+    p.style.animationDelay = (Math.random()*0.25) + 's';
+    layer.appendChild(p);
+    setTimeout(() => p.remove(), 2000);
+  }
+}
+
+function showPraise(text){
+  const el = $('#praise-text');
+  el.textContent = text;
+  el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  clearTimeout(showPraise._t);
+  showPraise._t = setTimeout(() => { el.textContent = ''; }, 1900);
+}
+
+function showQuestion(){
+  if($('#game').classList.contains('hidden')) return;   // 已经回家了
+  const m = MODULES.find(x => x.id === state.moduleId);
+  const q = m.gen();
+  state.q = q; state.locked = false;
+
+  $('#prompt-visual').innerHTML = q.promptHTML;
+  const box = $('#options');
+  box.innerHTML = '';
+  q.options.forEach(op => {
+    const b = document.createElement('button');
+    b.className = 'option';
+    b.innerHTML = op.html;
+    b.onclick = () => choose(b, op);
+    box.appendChild(b);
+  });
+  playTexts(q.promptSpeak);
+}
+
+function choose(btn, op){
+  if(state.locked) return;
+  const q = state.q;
+  if(String(op.value) === String(q.answerValue)){
+    state.locked = true;
+    btn.classList.add('correct');
+    state.sessionCorrect++;
+    const bonus = state.sessionCorrect % 5 === 0;
+    addStars(bonus ? 3 : 1);
+    confetti();
+    const praise = pick(PRAISE);
+    showPraise(bonus ? '🎉 连对5题！+3⭐' : praise);
+    if(q.correctHTML) $('#prompt-visual').innerHTML = q.correctHTML;
+    const seq = [bonus ? '连对五题，太厉害啦！多送你两颗小星星！' : praise];
+    if(q.correctSpeak) seq.push(...(Array.isArray(q.correctSpeak) ? q.correctSpeak : [q.correctSpeak]));
+    playTexts(seq);
+    clearTimeout(state.nextTimer);
+    state.nextTimer = setTimeout(showQuestion, q.nextDelay || 2500);
+  }else{
+    btn.classList.add('wrong');
+    btn.disabled = true;
+    const wrongArr = op.wrongSpeak ? (Array.isArray(op.wrongSpeak) ? op.wrongSpeak : [op.wrongSpeak]) : [];
+    playTexts(wrongArr.concat([pick(TRY_AGAIN)]));
+  }
+}
+
+/* ================= 页面导航 ================= */
+function buildHome(){
+  const grid = $('#module-grid');
+  grid.innerHTML = '';
+  MODULES.forEach(m => {
+    const b = document.createElement('button');
+    b.className = 'module-card';
+    b.style.background = m.bg;
+    b.innerHTML = `<span class="m-icon">${m.icon}</span><span class="m-name">${m.name}</span>`;
+    b.onclick = () => startModule(m.id);
+    grid.appendChild(b);
+  });
+  // 首页欢迎横幅：佩奇一家 + 汪汪队
+  $('#welcome .mascots').innerHTML = `
+    <span class="m" style="animation-delay:0s">${pigSVG(['#ff6b81','#d92643'], 60)}</span>
+    <span class="m" style="animation-delay:.15s">${pigSVG(['#5cb3ff','#2b7fd4'], 50, {dino:true})}</span>
+    <span class="m" style="animation-delay:.3s">${pupSVG({fur:['#c99a6a','#a3754a'], ear:'#7c5333', uni:['#4d94ff','#1f5fc4'], muzz:'#e8c8a0'}, 50)}</span>
+    <span class="m" style="animation-delay:.45s">${pupSVG({fur:['#ffffff','#ececec'], ear:'#f4f4f4', uni:['#ff6b6b','#d33030'], muzz:'#fdf4f4', spots:true}, 50)}</span>
+    <span class="m" style="animation-delay:.6s">${pupSVG({fur:['#f0c290','#d9a066'], ear:'#b9834f', uni:['#ff9ec6','#f06a9b'], muzz:'#fbe0c3'}, 50)}</span>`;
+}
+
+$('#welcome').onclick = () => {
+  playTexts(['小猪佩奇和汪汪队欢迎你！我们一起玩吧！']);
+};
+
+function startModule(id){
+  state.moduleId = id;
+  state.sessionCorrect = 0;
+  state.locked = true;                       // 防止旧题目的定时器/点击串场
+  clearTimeout(state.nextTimer);
+  const m = MODULES.find(x => x.id === id);
+  $('#game-title').textContent = `${m.icon} ${m.name}`;
+  $('#home').classList.add('hidden');
+  $('#game').classList.remove('hidden');
+  updateStars();
+  showQuestion();
+}
+
+$('#back-btn').onclick = () => {
+  state.locked = true;
+  clearTimeout(state.nextTimer);
+  stopCurrentAudio();
+  if(synth){ try{ synth.cancel(); }catch(e){} }
+  $('#game').classList.add('hidden');
+  $('#home').classList.remove('hidden');
+};
+
+$('#repeat-btn').onclick = () => {
+  if(state.q && !state.locked) playTexts(state.q.promptSpeak);
+};
+
+const muteBtn = $('#mute-btn');
+function renderMute(){ muteBtn.textContent = muted ? '🔇' : '🔊'; }
+muteBtn.onclick = () => {
+  muted = !muted;
+  try { localStorage.setItem('baby_muted', muted ? '1' : '0'); } catch(e){}
+  if(muted){ stopCurrentAudio(); if(synth){ try{ synth.cancel(); }catch(e){} } }
+  renderMute();
+};
+renderMute();
+
+$('#fs-btn').onclick = () => {
+  try{
+    if(document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  }catch(e){}
+};
+
+/* ================= 启动 ================= */
+buildHome();
+updateStars();
+</script>
+</body>
+</html>
