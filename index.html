@@ -21,11 +21,17 @@
   html, body { margin:0; padding:0; min-height:100%; }
   body {
     font-family: 'Comic Sans MS','Segoe UI','Microsoft YaHei','PingFang SC',sans-serif;
-    background: linear-gradient(160deg, #89d4ff 0%, #a8e6ff 30%, #fff3b0 70%, #ffd6e0 100%);
-    background-attachment: fixed;
+    background:#a8e6ff;
     color:#4a3b6b;
     user-select:none;
     overscroll-behavior:none;
+  }
+  /* 渐变背景用独立固定层承载：合成一次、滚动零重绘。
+     background-attachment:fixed 在手机上会导致滚动时整页渐变每帧重绘 → 卡顿，弃用 */
+  body::before {
+    content:''; position:fixed; inset:0; z-index:-1;
+    background: linear-gradient(160deg, #89d4ff 0%, #a8e6ff 30%, #fff3b0 70%, #ffd6e0 100%);
+    transform: translateZ(0);
   }
   #app { min-height:100vh; display:flex; flex-direction:column; }
   .screen { flex:1; display:flex; flex-direction:column; align-items:center; padding: 18px 16px 30px; }
@@ -432,13 +438,24 @@ function stopCurrentAudio(){
     currentAudio = null;
   }
 }
+/* 语音令牌：每次新播报或"回家/静音"都会使旧播报链整体作废，
+   防止弱网下语音分片加载到账后，旧的题目语音在首页/下一个模块里冒出来 */
+let voiceToken = 0;
+function stopVoiceAll(){
+  voiceToken++;
+  stopCurrentAudio();
+  if(synth){ try{ synth.cancel(); }catch(e){} }
+}
 /* texts: 字符串数组。每个字符串若在已加载的语音分片里有预录音频则播放真声，否则用系统语音朗读 */
 function playTexts(texts, done){
   if(muted){ if(done) setTimeout(done, 400); return; }
   const items = (Array.isArray(texts) ? texts : [texts]).filter(x => x);
+  const tok = ++voiceToken;
   ensurePartsFor(items).then(() => {
+    if(tok !== voiceToken) return;      // 加载期间已被新播报/回家/静音打断
     let i = 0;
     const next = () => {
+      if(tok !== voiceToken) return;
       if(i >= items.length){ if(done) done(); return; }
       const text = items[i++];
       const key = textToKey[text];
@@ -509,18 +526,19 @@ function pigSVG(shirt, w, opts){
         <stop offset="0%" stop-color="${shirt[0]}"/><stop offset="100%" stop-color="${shirt[1]}"/>
       </linearGradient>
       ${dino}
-      <filter id="${u}b" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.7"/></filter>
+      <radialGradient id="${u}sh"><stop offset="0" stop-color="#000" stop-opacity=".10"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+      <radialGradient id="${u}bl"><stop offset="0" stop-color="#ff8fb0" stop-opacity=".5"/><stop offset="1" stop-color="#ff8fb0" stop-opacity="0"/></radialGradient>
     </defs>
     ${sceneDefs(u)}
-    <ellipse cx="60" cy="126" rx="35" ry="5" fill="#000" opacity="0.10" filter="url(#${u}b)"/>
+    <ellipse cx="60" cy="126" rx="35" ry="5" fill="url(#${u}sh)"/>
     ${tail}
     <ellipse cx="36" cy="29" rx="13.5" ry="17.5" fill="#ee9cb9" transform="rotate(-24 36 29)"/>
     <ellipse cx="84" cy="29" rx="13.5" ry="17.5" fill="#ee9cb9" transform="rotate(24 84 29)"/>
     <ellipse cx="37.5" cy="31" rx="7" ry="10.5" fill="#fbc6d8" transform="rotate(-24 37.5 31)"/>
     <ellipse cx="82.5" cy="31" rx="7" ry="10.5" fill="#fbc6d8" transform="rotate(24 82.5 31)"/>
     <circle cx="60" cy="56" r="37" fill="url(#${u}s)"/>
-    <circle cx="33" cy="62" r="7" fill="#ff8fb0" opacity="0.5" filter="url(#${u}b)"/>
-    <circle cx="87" cy="62" r="7" fill="#ff8fb0" opacity="0.5" filter="url(#${u}b)"/>
+    <circle cx="33" cy="62" r="7" fill="url(#${u}bl)"/>
+    <circle cx="87" cy="62" r="7" fill="url(#${u}bl)"/>
     <circle cx="46" cy="47" r="5.6" fill="#4a2b4a"/>
     <circle cx="74" cy="47" r="5.6" fill="#4a2b4a"/>
     <circle cx="47.9" cy="44.9" r="2" fill="#fff"/>
@@ -582,10 +600,11 @@ function pupSVG(p, w){
         <stop offset="0%" stop-color="${p.uni[0]}"/><stop offset="100%" stop-color="${p.uni[1]}"/>
       </linearGradient>
       ${hatDef}
-      <filter id="${u}b" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.7"/></filter>
+      <radialGradient id="${u}sh"><stop offset="0" stop-color="#000" stop-opacity=".10"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+      <radialGradient id="${u}bl"><stop offset="0" stop-color="#f2a5a5" stop-opacity=".5"/><stop offset="1" stop-color="#f2a5a5" stop-opacity="0"/></radialGradient>
     </defs>
     ${sceneDefs(u)}
-    <ellipse cx="60" cy="126" rx="35" ry="5" fill="#000" opacity="0.10" filter="url(#${u}b)"/>
+    <ellipse cx="60" cy="126" rx="35" ry="5" fill="url(#${u}sh)"/>
     <ellipse cx="29" cy="46" rx="11.5" ry="21.5" fill="${p.ear}" transform="rotate(20 29 46)"/>
     <ellipse cx="91" cy="46" rx="11.5" ry="21.5" fill="${p.ear}" transform="rotate(-20 91 46)"/>
     <circle cx="60" cy="56" r="36" fill="url(#${u}f)"${whiteStroke}/>
@@ -600,8 +619,8 @@ function pupSVG(p, w){
     <ellipse cx="60" cy="64.5" rx="6.2" ry="4.9" fill="#33241f"/>
     <ellipse cx="58" cy="62.9" rx="1.9" ry="1.1" fill="#fff" opacity="0.75"/>
     <path d="M55 76 Q60 81 65 76" stroke="#33241f" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-    <circle cx="34" cy="63" r="5.5" fill="#f2a5a5" opacity="0.5" filter="url(#${u}b)"/>
-    <circle cx="86" cy="63" r="5.5" fill="#f2a5a5" opacity="0.5" filter="url(#${u}b)"/>
+    <circle cx="34" cy="63" r="5.5" fill="url(#${u}bl)"/>
+    <circle cx="86" cy="63" r="5.5" fill="url(#${u}bl)"/>
     <path d="M38 88 Q60 80 82 88 L88 130 L32 130 Z" fill="url(#${u}u)"/>
     <path d="M42 88 L50 96 L60 87 L70 96 L78 88" stroke="#ffffff" stroke-width="3" fill="none" opacity="0.55" stroke-linecap="round" stroke-linejoin="round"/>
     <path d="M33.5 121.5 L86.5 121.5 L88 130 L32 130 Z" fill="#ffffff" opacity="0.16"/>
@@ -1326,20 +1345,18 @@ function startModule(id){
   $('#home').classList.add('hidden');
   $('#game').classList.remove('hidden');
   updateStars();
-  // 预加载本模块语音分片（角色乐园=卡通+公主两个包），加载完再出题，保证第一句就是真声
-  Promise.all((MODULE_PARTS[id] || []).map(loadAudioPart)).then(() => {
-    if(state.moduleId !== id) return;        // 等待期间用户已离开
-    if(m.special === 'dressup'){ startDressup(); return; }
-    showQuestion();
-  });
+  // 立即出题/进游戏：语音分片由 playTexts 内部按需加载，
+  // 弱网下题目画面先出现、真声稍后跟上（不再干等最大 2.7MB 的分片下载）
+  (MODULE_PARTS[id] || []).forEach(loadAudioPart);
+  if(m.special === 'dressup'){ startDressup(); return; }
+  showQuestion();
 }
 
 $('#back-btn').onclick = () => {
   state.locked = true;
   state.mem = null;
   clearTimeout(state.nextTimer);
-  stopCurrentAudio();
-  if(synth){ try{ synth.cancel(); }catch(e){} }
+  stopVoiceAll();
   $('#game').classList.add('hidden');
   $('#home').classList.remove('hidden');
 };
@@ -1354,7 +1371,7 @@ function renderMute(){ muteBtn.textContent = muted ? '🔇' : '🔊'; }
 muteBtn.onclick = () => {
   muted = !muted;
   try { localStorage.setItem('baby_muted', muted ? '1' : '0'); } catch(e){}
-  if(muted){ stopCurrentAudio(); if(synth){ try{ synth.cancel(); }catch(e){} } }
+  if(muted){ stopVoiceAll(); }
   renderMute();
 };
 renderMute();
