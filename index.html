@@ -59,8 +59,29 @@
     padding: 8px 26px 4px; box-shadow:0 8px 0 rgba(0,0,0,.08), 0 14px 30px rgba(255,143,176,.25); display:inline-block;
   }
   .cartoon-card svg { width: clamp(110px, 20vw, 150px); height:auto; display:block; }
-  .char-opt { display:flex; align-items:flex-end; justify-content:center; }
+  .char-opt { display:flex; align-items:flex-end; justify-content:center; width:100%; height:100%; }
   .char-opt svg { width: clamp(84px, 15vw, 126px); height:auto; display:block; }
+
+  /* ---------- AI 插画选项（图片加载失败时显示底下的 emoji/手绘兜底） ---------- */
+  .img-opt { display:block; width:100%; height:100%; }
+  .img-wrap { position:relative; display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
+  .img-wrap img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:18px; }
+  .img-wrap .fb { display:flex; align-items:center; justify-content:center; font-size: clamp(40px,8vw,64px); }
+  .img-wrap.big { width: clamp(140px,26vw,190px); height: clamp(140px,26vw,190px); }
+  .img-wrap.big img { border-radius:20px; }
+  .option.has-img { width:clamp(130px,24vw,190px); height:clamp(120px,22vw,180px); min-width:0; min-height:0; padding:6px; overflow:hidden; }
+
+  /* ---------- 翻翻乐 ---------- */
+  #options.mem-grid { display:grid; grid-template-columns: repeat(3, minmax(90px, 150px)); gap:14px; justify-content:center; }
+  .mem-card { min-width:0; min-height:0; aspect-ratio:1/1; padding:0; border:none; background:none; box-shadow:none; perspective:600px; }
+  .mem-inner { position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .45s; }
+  .mem-card.open .mem-inner, .mem-card.matched .mem-inner { transform: rotateY(180deg); }
+  .mem-face { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; border-radius:20px; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+  .mem-front { background:linear-gradient(145deg,#ff9ec6,#f06a9b); font-size:clamp(30px,6vw,46px); box-shadow:0 6px 0 rgba(0,0,0,.12); }
+  .mem-back { background:#fff; border:4px solid #ffd166; transform:rotateY(180deg); overflow:hidden; padding:4px; }
+  .mem-back .img-opt, .mem-back .img-wrap { width:100%; height:100%; }
+  .mem-back img { border-radius:14px; }
+  .mem-card.matched .mem-back { background:#f0fff4; border-color:#51cf66; }
   @keyframes hop { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-9px); } }
   .module-card {
     border:4px solid #fff; border-radius: 28px; padding: 20px 10px 16px; cursor:pointer;
@@ -419,22 +440,27 @@ function pupSVG(p, w){
 }
 
 const CARTOON = [
-  { name:'佩奇',   kind:'pig', cheer:'哼哼哼～',   svg: pigSVG(['#ff6b81','#d92643'], 110) },
-  { name:'乔治',   kind:'pig', cheer:'恐龙吼吼！', svg: pigSVG(['#5cb3ff','#2b7fd4'], 92, {dino:true}) },
-  { name:'猪妈妈', kind:'pig', cheer:'哼哼～',     svg: pigSVG(['#ffa94d','#e8760c'], 110) },
-  { name:'阿奇',   kind:'pup', cheer:'汪汪队，立大功！', svg: pupSVG({fur:['#c99a6a','#a3754a'], ear:'#7c5333', uni:['#4d94ff','#1f5fc4'], muzz:'#e8c8a0'}, 110) },
-  { name:'毛毛',   kind:'pup', cheer:'汪汪！汪汪！',     svg: pupSVG({fur:['#ffffff','#ececec'], ear:'#f4f4f4', uni:['#ff6b6b','#d33030'], muzz:'#fdf4f4', spots:true}, 110) },
-  { name:'天天',   kind:'pup', cheer:'汪汪队，起飞喽！', svg: pupSVG({fur:['#f0c290','#d9a066'], ear:'#b9834f', uni:['#ff9ec6','#f06a9b'], muzz:'#fbe0c3'}, 110) },
+  { name:'佩奇',   kind:'pig', cheer:'哼哼哼～',   img:'images/toon_pig_red.jpg',   svg: pigSVG(['#ff6b81','#d92643'], 110) },
+  { name:'乔治',   kind:'pig', cheer:'恐龙吼吼！', img:'images/toon_pig_blue.jpg',  svg: pigSVG(['#5cb3ff','#2b7fd4'], 92, {dino:true}) },
+  { name:'猪妈妈', kind:'pig', cheer:'哼哼～',     img:'images/toon_pig_mom.jpg',   svg: pigSVG(['#ffa94d','#e8760c'], 110) },
+  { name:'阿奇',   kind:'pup', cheer:'汪汪队，立大功！', img: 'images/toon_pup_police.jpg', svg: pupSVG({fur:['#c99a6a','#a3754a'], ear:'#7c5333', uni:['#4d94ff','#1f5fc4'], muzz:'#e8c8a0'}, 110) },
+  { name:'毛毛',   kind:'pup', cheer:'汪汪！汪汪！',     img:'images/toon_pup_fire.jpg', svg: pupSVG({fur:['#ffffff','#ececec'], ear:'#f4f4f4', uni:['#ff6b6b','#d33030'], muzz:'#fdf4f4', spots:true}, 110) },
+  { name:'天天',   kind:'pup', cheer:'汪汪队，起飞喽！', img: 'images/toon_pup_pilot.jpg', svg: pupSVG({fur:['#f0c290','#d9a066'], ear:'#b9834f', uni:['#ff9ec6','#f06a9b'], muzz:'#fbe0c3'}, 110) },
 ];
 
 function genCartoon(){
   const three = sample(CARTOON, 3);
   const t = pick(three);
   return {
-    promptHTML: `<div class="cartoon-card">${t.svg}</div>`,
+    useImg: !!t.img,
+    promptHTML: t.img
+      ? `<div class="cartoon-card"><span class="img-wrap big"><span class="fb">${t.svg}</span><img src="${t.img}" onerror="this.remove()"></span></div>`
+      : `<div class="cartoon-card">${t.svg}</div>`,
     promptSpeak: [`找一找，${t.name}在哪里呀？`],
     options: three.map(c => ({
-      html: `<span class="char-opt">${c.svg}</span>`,
+      html: c.img
+        ? `<span class="char-opt"><span class="img-wrap"><span class="fb">${c.svg}</span><img src="${c.img}" onerror="this.remove()"></span></span>`
+        : `<span class="char-opt">${c.svg}</span>`,
       value: c.name,
       wrongSpeak: [`这是${c.name}哦`, `再找找${t.name}～`],
     })),
@@ -443,22 +469,87 @@ function genCartoon(){
   };
 }
 
-/* ---------- 公主梦幻 ---------- */
-const PRINCESS = [['独角兽','🦄'],['公主','👸'],['仙女','🧚'],['美人鱼','🧜‍♀️'],['城堡','🏰'],['皇冠','👑'],['蝴蝶结','🎀'],['水晶球','🔮']];
+/* ---------- 公主梦幻（AI 精绘插画，emoji 兜底） ---------- */
+const PRINCESS = [
+  {name:'独角兽', emoji:'🦄', img:'images/princess_unicorn.jpg'},
+  {name:'公主', emoji:'👸', img:'images/princess_girl.jpg'},
+  {name:'仙女', emoji:'🧚', img:'images/princess_fairy.jpg'},
+  {name:'美人鱼', emoji:'🧜‍♀️', img:'images/princess_mermaid.jpg'},
+  {name:'城堡', emoji:'🏰', img:'images/princess_castle.jpg'},
+  {name:'皇冠', emoji:'👑', img:'images/princess_crown.jpg'},
+  {name:'蝴蝶结', emoji:'🎀', img:'images/princess_bow.jpg'},
+  {name:'水晶球', emoji:'🔮', img:'images/princess_ball.jpg'},
+];
 
 function genPrincess(){
   const three = sample(PRINCESS, 3);
   const t = pick(three);
   return {
-    promptHTML: `<div class="ask-hint">魔法时间 ✨🦄</div>`,
-    promptSpeak: [`找一找，${t[0]}在哪里呀？`],
+    useImg: true,
+    promptHTML: `<div class="cartoon-card"><span class="img-wrap big"><span class="fb">${t.emoji}</span><img src="${t.img}" onerror="this.remove()"></span></div>`,
+    promptSpeak: [`找一找，${t.name}在哪里呀？`],
     options: three.map(it => ({
-      html: it[1], value: it[0],
-      wrongSpeak: [`这是${it[0]}哦`, `再找找${t[0]}～`],
+      html: `<span class="img-opt"><span class="img-wrap"><span class="fb">${it.emoji}</span><img src="${it.img}" onerror="this.remove()"></span></span>`,
+      value: it.name,
+      wrongSpeak: [`这是${it.name}哦`, `再找找${t.name}～`],
     })),
-    answerValue: t[0],
-    correctSpeak: [`对啦，${t[0]}找到喽！`],
+    answerValue: t.name,
+    correctSpeak: [`对啦，${t.name}找到喽！`],
   };
+}
+
+/* ---------- 翻翻乐（记忆配对小游戏） ---------- */
+function startMemory(){
+  const picks = sample(PRINCESS, 3);
+  const cards = shuffle(picks.flatMap(p => [p, p]));
+  state.q = null;
+  state.mem = { cards, open: [], done: 0, lock: false };
+  $('#prompt-visual').innerHTML = `<div class="ask-hint">翻翻乐，找出两张一样的 🎀</div>`;
+  const box = $('#options');
+  box.classList.add('mem-grid');
+  box.innerHTML = '';
+  cards.forEach((c, idx) => {
+    const b = document.createElement('button');
+    b.className = 'mem-card';
+    b.dataset.name = c.name;
+    b.innerHTML = `<span class="mem-inner"><span class="mem-face mem-front">🎀</span>` +
+      `<span class="mem-face mem-back"><span class="img-opt"><span class="img-wrap"><span class="fb">${c.emoji}</span><img src="${c.img}" onerror="this.remove()"></span></span></span></span>`;
+    b.onclick = () => flipCard(idx, b);
+    box.appendChild(b);
+  });
+  playTexts(['翻翻乐！找出两张一样的卡片！']);
+}
+
+function flipCard(idx, btn){
+  const m = state.mem;
+  if(!m || m.lock || btn.classList.contains('open') || btn.classList.contains('matched')) return;
+  btn.classList.add('open');
+  m.open.push(btn);
+  if(m.open.length < 2) return;
+  m.lock = true;
+  const a = m.open[0], b = m.open[1];
+  const same = a.dataset.name === b.dataset.name;
+  setTimeout(() => {
+    if(same){
+      a.classList.add('matched'); b.classList.add('matched');
+      a.classList.remove('open'); b.classList.remove('open');
+      m.done++;
+      playTexts(['配对成功！']);
+      if(m.done === 3){
+        addStars(3);
+        confetti();
+        showPraise('🎀 全部找到啦！+3⭐');
+        playTexts(['哇！全部都找到啦！你真棒！']);
+        clearTimeout(state.nextTimer);
+        state.nextTimer = setTimeout(() => {
+          if(!$('#game').classList.contains('hidden') && state.moduleId === 'memory') startMemory();
+        }, 3800);
+      }
+    }else{
+      a.classList.remove('open'); b.classList.remove('open');
+    }
+    m.open = []; m.lock = false;
+  }, same ? 450 : 950);
 }
 
 const HANZI = [
@@ -622,6 +713,7 @@ function genABC(){
 const MODULES = [
   {id:'cartoon',  name:'动画明星', icon:'🐷', bg:'#ffe3f0', gen:genCartoon},
   {id:'princess', name:'公主梦幻', icon:'🦄', bg:'#ffe9f7', gen:genPrincess},
+  {id:'memory',   name:'翻翻乐',   icon:'🎀', bg:'#fff0f9', special:'memory'},
   {id:'count',  name:'数一数',   icon:'🔢', bg:'#ffe1ea', gen:genCount},
   {id:'hanzi',  name:'认汉字',   icon:'📖', bg:'#fff0d9', gen:genHanzi},
   {id:'shape',  name:'颜色形状', icon:'🎨', bg:'#fff9d1', gen:genShapeColor},
@@ -686,10 +778,12 @@ function showQuestion(){
 
   $('#prompt-visual').innerHTML = q.promptHTML;
   const box = $('#options');
+  box.classList.remove('mem-grid');
   box.innerHTML = '';
   q.options.forEach(op => {
     const b = document.createElement('button');
     b.className = 'option';
+    if(q.useImg) b.classList.add('has-img');
     b.innerHTML = op.html;
     b.onclick = () => choose(b, op);
     box.appendChild(b);
@@ -752,17 +846,20 @@ function startModule(id){
   state.moduleId = id;
   state.sessionCorrect = 0;
   state.locked = true;                       // 防止旧题目的定时器/点击串场
+  state.mem = null;
   clearTimeout(state.nextTimer);
   const m = MODULES.find(x => x.id === id);
   $('#game-title').textContent = `${m.icon} ${m.name}`;
   $('#home').classList.add('hidden');
   $('#game').classList.remove('hidden');
   updateStars();
+  if(m.special === 'memory'){ startMemory(); return; }
   showQuestion();
 }
 
 $('#back-btn').onclick = () => {
   state.locked = true;
+  state.mem = null;
   clearTimeout(state.nextTimer);
   stopCurrentAudio();
   if(synth){ try{ synth.cancel(); }catch(e){} }
@@ -772,6 +869,7 @@ $('#back-btn').onclick = () => {
 
 $('#repeat-btn').onclick = () => {
   if(state.q && !state.locked) playTexts(state.q.promptSpeak);
+  else if(state.moduleId === 'memory') playTexts(['翻翻乐！找出两张一样的卡片！']);
 };
 
 const muteBtn = $('#mute-btn');
