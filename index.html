@@ -322,61 +322,12 @@ function numberOptions(n, k, max, min){
   return shuffle([...s]);
 }
 
-/* ================= 语音 ================= */
+/* ================= 语音 =================
+   统一使用预录的微软神经网络语音（晓晓/Ana，make_voice.py 生成，按模块懒加载）。
+   不再使用系统 TTS 兜底——避免一台设备上两种音色混着说话；
+   没有录音的台词直接静音跳过。 */
 let muted = false;
 try { muted = localStorage.getItem('baby_muted') === '1'; } catch(e){}
-const synth = ('speechSynthesis' in window) ? window.speechSynthesis : null;
-
-function pickVoice(lang){
-  if(!synth) return null;
-  try{
-    const vs = synth.getVoices();
-    if(!vs.length) return null;
-    const p = lang.slice(0,2).toLowerCase();
-    const match = re => v => v.lang.toLowerCase().startsWith(p) && re.test(v.name);
-    // 优先"在线自然语音"（Edge 提供，音色最甜最自然），其次离线语音
-    const online = p === 'zh' ? /Xiaoyi Online|Xiaoxiao Online|Xiaochen Online|Xiaomo Online|Yunxi Online|Yunyang Online/i
-                              : /Jenny Online|Aria Online|Emma Online/i;
-    const offline = p === 'zh' ? /Xiaoxiao|Xiaoyi|Huihui|Yaoyao|Tingting|Yunyang|Kangkang/i
-                               : /Aria|Jenny|Zira|Guy|Emma/i;
-    return vs.find(match(online)) || vs.find(match(offline))
-        || vs.find(v => v.lang.toLowerCase().startsWith(p)) || null;
-  }catch(e){ return null; }
-}
-
-function toSeq(x){ return typeof x === 'string' ? [{t:x}] : x; }
-
-function speakSeq(seq, done){
-  seq = toSeq(seq);
-  if(muted || !synth){ if(done) setTimeout(done, 500); return; }
-  try{
-    synth.cancel();
-    let i = 0;
-    const next = () => {
-      if(i >= seq.length){ if(done) done(); return; }
-      const item = seq[i++];
-      const t = item.t, lang = item.lang || 'zh-CN';
-      const v = pickVoice(lang);
-      // 在线自然音色本身就很甜，不额外变调；离线音色稍微提高音调更像小妹妹
-      const natural = v && /Online|\(Natural\)/i.test(v.name);
-      const u = new SpeechSynthesisUtterance(t);
-      u.lang = lang;
-      u.rate = item.rate != null ? item.rate : (natural ? 0.95 : 0.9);
-      u.pitch = item.pitch != null ? item.pitch : (natural ? 1.0 : 1.12);
-      if(v) u.voice = v;
-      let finished = false;
-      const finish = () => { if(!finished){ finished = true; next(); } };
-      const guard = setTimeout(() => { try{ synth.cancel(); }catch(e){} finish(); },
-                                Math.max(2600, t.length * 380));
-      u.onend = () => { clearTimeout(guard); finish(); };
-      u.onerror = () => { clearTimeout(guard); finish(); };
-      synth.speak(u);
-    };
-    next();
-  }catch(e){ if(done) setTimeout(done, 300); }
-}
-
-if(synth){ try{ synth.getVoices(); synth.onvoiceschanged = () => synth.getVoices(); }catch(e){} }
 
 /* ================= 语音包按模块懒加载 =================
    make_voice.py 把全部真声音频按 key 前缀拆成多个分片文件
@@ -445,7 +396,6 @@ let voiceToken = 0;
 function stopVoiceAll(){
   voiceToken++;
   stopCurrentAudio();
-  if(synth){ try{ synth.cancel(); }catch(e){} }
 }
 /* texts: 字符串数组。每个字符串若在已加载的语音分片里有预录音频则播放真声，否则用系统语音朗读 */
 function playTexts(texts, done){
@@ -466,9 +416,9 @@ function playTexts(texts, done){
         currentAudio = a;
         const fin = () => { a.onended = a.onerror = null; setTimeout(next, 140); };
         a.onended = fin; a.onerror = fin;
-        a.play().catch(() => speakSeq([{ t: text }], next));
+        a.play().catch(() => { currentAudio = null; setTimeout(next, 200); });   // 播放失败跳过该句
       }else{
-        speakSeq([{ t: text }], next);
+        setTimeout(next, 120);   // 无预录音频：静音跳过，全程单一音色
       }
     };
     next();
@@ -903,7 +853,7 @@ function initDZ2(){
       const it = D[c][i];
       anim('bn'); smile(); burst(10); chime();
       if(!award() && !it.none){
-        const pr = ['真漂亮！','好好看呀！','太美啦！','闪闪发光！'];
+        const pr = ['好好看呀！','太美啦！','闪闪发光！'];
         if(c === 'bg'){ dz2Say(['来到' + it.n + '啦！']); }
         else {
           const verb = { dr:'穿上', hr:'扎个', ht:'戴上', sh:'穿上', mg:'' }[c] || '';
