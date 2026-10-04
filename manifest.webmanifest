@@ -1,0 +1,16 @@
+{
+  "name": "宝贝学习乐园",
+  "short_name": "宝贝乐园",
+  "description": "给 4 岁左右宝贝设计的益智学习小游戏：认汉字、数一数、颜色形状、动物水果、英文字母、公主换装。",
+  "lang": "zh-CN",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#89d4ff",
+  "theme_color": "#ffd166",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

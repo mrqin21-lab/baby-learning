@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>宝贝学习乐园</title>
+<meta name="description" content="给 4 岁左右宝贝设计的益智学习小游戏：认汉字、数一数、颜色形状、动物水果、英文字母、公主换装。免费无广告，可离线玩。">
+<meta name="theme-color" content="#ffd166">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="宝贝乐园">
+<meta property="og:title" content="宝贝学习乐园">
+<meta property="og:description" content="给最棒的宝贝，一起玩吧！">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin:0; padding:0; min-height:100%; }
@@ -72,9 +84,121 @@
   .option.has-img { width:clamp(130px,24vw,190px); height:clamp(120px,22vw,180px); min-width:0; min-height:0; padding:6px; overflow:hidden; }
 
   /* ---------- 公主换装 ---------- */
-  #doll-stage { display:flex; align-items:center; justify-content:center; }
-  #doll-stage svg { width: clamp(200px, 34vw, 260px); height:auto; filter: drop-shadow(0 10px 16px rgba(255,143,176,.35)); }
-  .dz-btn { width:auto !important; height:auto !important; min-width:150px; min-height:70px; font-size:clamp(18px,3.5vw,26px) !important; padding:10px 22px; }
+  #doll-stage { position:relative; width:100%; height:clamp(300px, 46vh, 430px); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  #doll-stage svg { width: clamp(200px, 30vw, 250px); height:auto; filter: drop-shadow(0 10px 16px rgba(255,143,176,.35)); }
+  #doll-stage canvas { width:100% !important; height:100% !important; display:block; touch-action:none; cursor:grab; }
+  .dz-btn { width:auto !important; height:auto !important; min-width:140px; min-height:64px; font-size:clamp(17px,3.2vw,24px) !important; padding:8px 18px; }
+  .dz-name {
+    margin-top:8px; display:flex; align-items:center; justify-content:center; gap:4px;
+    background:#fff; border:3px solid #ffd166; border-radius:999px; padding:4px 16px;
+    box-shadow:0 3px 0 rgba(0,0,0,.08); max-width:96%;
+  }
+  .dz-name .dz-name-ico { width:20px; height:20px; flex:none; }
+  .dz-name .dz-name-ico svg { width:100%; height:100%; display:block; }
+  .dz-name .dz-name-txt { font-size:clamp(12px,2.2vw,16px); color:#7a5aa0; font-weight:bold; }
+
+  /* 拖拽换装布局：舞台 + 侧边物品面板 */
+  .dz-play { display:flex; flex-direction:column; width:100%; align-items:center; gap:8px; }
+  @media (min-width: 880px){
+    .dz-play { flex-direction:row; justify-content:center; align-items:stretch; }
+    #doll-stage { flex:1 1 55%; height:clamp(340px, 54vh, 480px) !important; }
+    .dz-side { flex:0 0 310px; display:flex; flex-direction:column; gap:8px; }
+  }
+  .dz-panel { background:#fff; border:4px solid #ffd166; border-radius:20px; padding:8px 8px 4px; width:100%; max-width:600px; box-shadow:0 6px 0 rgba(0,0,0,.08); }
+  .dz-tabs { display:flex; gap:8px; margin-bottom:8px; }
+  .dz-tab { flex:1; font-size:clamp(24px,4.5vw,32px); padding:7px 0 5px; border-radius:14px; border:3px solid #e6d9ff; background:#faf6ff; cursor:pointer; font-family:inherit; color:#7a5aa0; }
+  .dz-tab.on { border-color:#ffd166; background:#fff8e1; }
+  .dz-shelf { display:flex; gap:8px; overflow-x:auto; padding:4px 2px 10px; scrollbar-width:none; }
+  .dz-shelf::-webkit-scrollbar { display:none; }
+  .dz-item {
+    flex:0 0 auto; width:76px; height:88px; border:3px solid #e6d9ff; border-radius:16px;
+    background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; cursor:grab; touch-action:none; position:relative; user-select:none; -webkit-user-select:none;
+  }
+  .dz-item svg { width:46px; height:auto; pointer-events:none; }
+  .dz-item .dz-item-txt { font-size:11px; color:#8b7ab0; max-width:66px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dz-item.on { border-color:#ffd166; background:#fff8e1; box-shadow:0 0 0 3px rgba(255,209,102,.35); }
+  .dz-item.dragging { opacity:.35; }
+  .dz-ghost { position:fixed; z-index:220; pointer-events:none; width:72px; height:84px; transform:translate(-50%,-50%); filter:drop-shadow(0 8px 14px rgba(0,0,0,.3)); }
+  .dz-ghost svg { width:100%; height:auto; }
+  .dz-ghost.fly { transition: transform .28s ease-in; }
+
+  /* ---------- 公主换装 · 装扮任务（图形化：图标+目标缩略图） ---------- */
+  .dz-task {
+    background:#fff; border:3px solid #c5a3ff; border-radius:20px; color:#7c4dff;
+    box-shadow:0 3px 0 rgba(124,77,255,.2); margin: 0 auto 8px; max-width:96%;
+    display:flex; align-items:center; gap:10px; padding:7px 16px;
+  }
+  .dz-task .dz-task-emoji { font-size:clamp(26px,5vw,34px); flex:none; }
+  .dz-task .dz-task-ico { width:54px; height:60px; flex:none; display:flex; align-items:center; justify-content:center; border:2px dashed #e6d9ff; border-radius:12px; background:#fdfaff; }
+  .dz-task .dz-task-ico svg { width:100%; max-height:56px; height:auto; display:block; }
+  .dz-task .dz-task-txt { font-size:clamp(15px,2.6vw,20px); font-weight:bold; line-height:1.3; }
+  .dz-task.ok { border-color:#51cf66; background:#f0fff4; }
+  .dz-task.ok .dz-task-txt { color:#2b8a3e; }
+  .dz-task.ok .dz-task-ico { border-style:solid; border-color:#51cf66; background:#e6ffec; font-size:30px; }
+  #options.dz-grid { display:grid; grid-template-columns:repeat(3, minmax(118px, 1fr)); gap:12px; width:100%; max-width:600px; }
+  .dz-btn { width:100% !important; min-width:0 !important; }
+
+  /* ---------- 公主换装间（成熟换装游戏集成：分类页签+物品网格+换色） ---------- */
+  #dz2 { position:relative; width:100%; height:clamp(480px, 76vh, 700px); display:flex; flex-direction:column; background:linear-gradient(#bdeaff 85%,#9be37a 85%); border-radius:22px; overflow:hidden; box-shadow:0 8px 24px rgba(224,80,143,.18); }
+  #dz2 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:manipulation; }
+  #dz2 #stage { flex:1; min-height:0; position:relative; }
+  #dz2 #sv { width:100%; height:100%; display:block; }
+  #dz2 .fab { width:52px; height:52px; border-radius:50%; border:0; background:#fff; font-size:28px; box-shadow:0 3px 8px #0003; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
+  #dz2 .fab:active { transform:scale(.9); }
+  #dz2 #tools { position:absolute; right:10px; top:10px; display:flex; flex-direction:column; gap:10px; }
+  #dz2 #panel { background:#fff; border-radius:24px 24px 0 0; padding:8px 8px calc(8px + env(safe-area-inset-bottom)); box-shadow:0 -4px 14px #e0508f33; max-height:44%; display:flex; flex-direction:column; }
+  #dz2 #tabs { display:flex; gap:6px; }
+  #dz2 .tab { flex:1; height:54px; border:0; border-radius:18px; background:#ffeef6; font-size:31px; cursor:pointer; padding:0; font-family:inherit; display:flex; align-items:center; justify-content:center; }
+  #dz2 .tab.on { background:#ffd3e6; box-shadow:inset 0 0 0 3px #ff5fa2; }
+  #dz2 .tab.on { background:#ff8fc0; transform:translateY(-4px) scale(1.06); box-shadow:0 4px 0 #e0508f; }
+  #dz2 #items { display:grid; grid-template-columns:repeat(auto-fill,minmax(66px,1fr)); gap:8px; padding:10px 2px 2px; overflow-y:auto; min-height:0; }
+  #dz2 .it { aspect-ratio:1; max-height:86px; border:3px solid #ffd3e6; border-radius:18px; background:#fff8fc; padding:3px; cursor:pointer; font-size:32px; }
+  #dz2 .it svg { width:100%; height:100%; display:block; }
+  #dz2 .it.on { border-color:#ff5fa2; background:#ffe3f1; transform:scale(1.08); }
+  #dz2 #sw { display:none; gap:10px; padding:12px 6px 4px; overflow-x:auto; flex-shrink:0; }
+  #dz2 .sq { width:42px; height:42px; min-width:42px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 2px #ffd3e6; cursor:pointer; padding:0; }
+  #dz2 .sq.on { box-shadow:0 0 0 4px #ff5fa2; transform:scale(1.15); }
+  #dz2 #girl { animation:dz2idle 2.6s ease-in-out infinite; }
+  @keyframes dz2idle { 50% { transform:translateY(-4px); } }
+  #dz2 #gi { transform-box:view-box; transform-origin:150px 440px; }
+  #dz2 #gi.bn { animation:dz2bn .6s; }
+  #dz2 #gi.tw { animation:dz2tw 1s; }
+  @keyframes dz2bn { 0%{transform:scale(1)} 30%{transform:scale(1.12,.88)} 60%{transform:scale(.94,1.1)} 100%{transform:scale(1)} }
+  @keyframes dz2tw { 0%{transform:scaleX(1)} 25%{transform:scaleX(-1)} 50%{transform:scaleX(1)} 75%{transform:scaleX(-1)} 100%{transform:scaleX(1)} }
+  #dz2 .eye { transform-box:fill-box; transform-origin:center; animation:dz2bl 4s infinite; }
+  @keyframes dz2bl { 0%,94%,100%{transform:scaleY(1)} 97%{transform:scaleY(.1)} }
+  #dz2 #fx { position:absolute; inset:0; pointer-events:none; z-index:5; overflow:hidden; }
+  #dz2 #fx span { position:absolute; line-height:1; }
+  #dz2 #flash { position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:6; transition:opacity .45s; }
+  #dz2 #flash.on { opacity:.95; transition:none; }
+  @media (orientation:landscape) and (max-height:620px){
+    #dz2 { flex-direction:row; height:min(94vh, 620px); }
+    #dz2 #stage { flex:1; }
+    #dz2 #panel { width:46%; max-height:none; border-radius:24px 0 0 24px; box-shadow:-4px 0 14px #e0508f33; }
+    #dz2 #items { flex:1; }
+  }
+  @media (prefers-reduced-motion:reduce){ #dz2 #girl, #dz2 .eye { animation:none; } }
+  .doll-happy { animation: doll-happy .9s ease both; }
+  @keyframes doll-happy {
+    0%,100%{ transform:translateY(0) rotate(0deg); }
+    20%{ transform:translateY(-7px) rotate(-3deg); }
+    45%{ transform:translateY(-3px) rotate(2deg); }
+    70%{ transform:translateY(-6px) rotate(-2deg); }
+  }
+
+  /* ---------- 公主换装 · 我的衣柜 ---------- */
+  .wardrobe-mask { position:fixed; inset:0; background:rgba(60,42,90,.45); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; }
+  .wardrobe-panel { background:#fff; border:5px solid #ffd166; border-radius:26px; padding:18px 20px; max-width:560px; width:100%; max-height:86vh; overflow:auto; text-align:center; box-shadow:0 14px 40px rgba(0,0,0,.25); }
+  .wardrobe-panel h3 { margin:0 0 4px; color:#e8890c; font-size: clamp(20px,4vw,26px); }
+  .wd-progress { font-size:15px; color:#7a6aa0; margin-bottom:12px; }
+  .wd-group { text-align:left; margin-bottom:10px; }
+  .wd-group .g-name { font-weight:bold; color:#5a4a80; font-size:16px; margin-bottom:6px; }
+  .wd-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+  .wd-cell { border:2px dashed #e6d9ff; border-radius:14px; padding:6px 4px; color:#8b7ab0; background:#fdfaff; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .wd-cell svg { width:34px; height:auto; }
+  .wd-cell .wd-lb { font-size:12px; line-height:1.2; }
+  .wd-cell.on { border-style:solid; border-color:#ffd166; background:#fffbe8; color:#b45309; font-weight:bold; }
 
   /* ---------- 翻翻乐 ---------- */
   #options.mem-grid { display:grid; grid-template-columns: repeat(3, minmax(120px, 180px)); gap:16px; justify-content:center; }
@@ -100,6 +224,15 @@
   .module-card .m-icon { font-size: clamp(44px, 8vw, 64px); line-height:1; }
   .module-card .m-name { font-size: clamp(18px, 3.2vw, 26px); font-weight:bold; color:#5a4a80; }
   .parent-hint { margin-top:26px; font-size:13px; color:#8b7ab0; text-align:center; line-height:1.6; max-width:720px; }
+
+  /* ---------- 今日统计 ---------- */
+  .today-line { text-align:center; font-size: clamp(13px,2.2vw,17px); color:#7a6aa0; margin: -10px 0 18px; }
+  #stats-mask { position:fixed; inset:0; background:rgba(60,42,90,.45); display:flex; align-items:center; justify-content:center; z-index:100; padding:24px; }
+  .stats-panel { background:#fff; border:5px solid #ffd166; border-radius:26px; padding:22px 26px; max-width:440px; width:100%; text-align:center; box-shadow:0 14px 40px rgba(0,0,0,.25); }
+  .stats-panel h3 { margin:0 0 14px; color:#e8890c; font-size: clamp(20px,4vw,28px); }
+  .stats-rows { text-align:left; font-size: clamp(15px,2.6vw,18px); color:#5a4a80; line-height:2; margin-bottom:16px; }
+  .stats-rows .row { display:flex; justify-content:space-between; gap:10px; border-bottom:1px dashed #f0e6ff; }
+  .stats-close { border:3px solid #ffd166; background:#fff8e6; color:#b45309; font-weight:bold; border-radius:999px; padding:10px 30px; font-size:17px; cursor:pointer; font-family:inherit; }
 
   /* ---------- 游戏页 ---------- */
   .game-header {
@@ -185,6 +318,7 @@
   @keyframes fall { to { transform: translateY(115vh) rotate(340deg); } }
   .pop-anim { animation: bounce .5s; }
 </style>
+<!-- three.min.js 已弃用：换装已切换为换装间 SVG 游戏，不再需要 3D 引擎 -->
 </head>
 <body>
 <div id="app">
@@ -194,6 +328,7 @@
     <div class="top-tools">
       <button class="tool-btn" id="mute-btn" title="声音开关">🔊</button>
       <button class="tool-btn" id="fs-btn" title="全屏">⛶</button>
+      <button class="tool-btn" id="stats-btn" title="今日统计">📊</button>
     </div>
     <h1 class="title">🌈 宝贝学习乐园</h1>
     <div class="subtitle">给最棒的宝贝 ⭐</div>
@@ -202,6 +337,7 @@
       <div class="mascots"></div>
     </div>
     <div class="star-total">⭐ <span id="total-stars">0</span></div>
+    <div class="today-line">📅 今日：答对 <span id="today-ok">0</span> 题 · 收获 <span id="today-stars">0</span>⭐</div>
     <div id="module-grid"></div>
     <div class="parent-hint">
       💡 给爸爸妈妈：建议用 Edge 或 Chrome 浏览器打开，调大音量；每天陪宝贝玩 10–15 分钟最合适。<br>
@@ -223,25 +359,44 @@
     </div>
   </div>
 
+  <!-- 今日统计弹层 -->
+  <div id="stats-mask" class="hidden">
+    <div class="stats-panel">
+      <h3>📊 宝贝小档案</h3>
+      <div class="stats-rows" id="stats-body"></div>
+      <button id="stats-close" class="stats-close">👍 知道啦</button>
+    </div>
+  </div>
+
+  <!-- 公主换装 · 我的衣柜弹层 -->
+  <div id="wardrobe-mask" class="hidden">
+    <div class="wardrobe-panel">
+      <h3>👗 我的衣柜</h3>
+      <div id="wardrobe-body"></div>
+      <button id="wardrobe-close" class="stats-close">👍 知道啦</button>
+    </div>
+  </div>
+
   <div id="praise-overlay"><div class="praise-text" id="praise-text"></div></div>
   <div id="confetti-layer"></div>
 </div>
 
-<script src="audio-data.js"></script>
 <script>
 /* ================= 工具函数 ================= */
 const $ = s => document.querySelector(s);
+const $$ = s => Array.prototype.slice.call(document.querySelectorAll(s));
 const pick = a => a[Math.floor(Math.random()*a.length)];
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function sample(arr,k){ return shuffle(arr.slice()).slice(0,k); }
 const CN_NUM = ['零','一','二','三','四','五','六','七','八','九','十'];
 
-function numberOptions(n, k, max){
+function numberOptions(n, k, max, min){
+  const lo = min || 1, hi = max || 10;
   const s = new Set([n]); let guard = 0;
   while(s.size < k && guard++ < 60){
     const d = (Math.random() < .5 ? -1 : 1) * (1 + Math.floor(Math.random()*3));
     const v = n + d;
-    if(v >= 1 && v <= (max||10)) s.add(v);
+    if(v >= lo && v <= hi) s.add(v);
   }
   return shuffle([...s]);
 }
@@ -303,10 +458,58 @@ function speakSeq(seq, done){
 
 if(synth){ try{ synth.getVoices(); synth.onvoiceschanged = () => synth.getVoices(); }catch(e){} }
 
+/* ================= 语音包按模块懒加载 =================
+   make_voice.py 把全部真声音频按 key 前缀拆成多个分片文件
+   （audio-core.js / audio-cartoon.js / ...），每个分片加载后
+   合并进 window.AUDIO_DATA。首屏只加载 core，进哪个模块补哪个。 */
+const AUDIO_PARTS = {
+  core:     ['praise_', 'try_', 'bonus', 'welcome'],
+  dressup:  ['dz_', 'dz2_'],
+  cartoon:  ['toon_'],
+  princess: ['pr_'],
+  count:    ['count_'],
+  hanzi:    ['hz_'],
+  shape:    ['sc_'],
+  animal:   ['an_'],
+  add:      ['add_'],
+  abc:      ['abc_'],
+};
+const loadedParts = {};
+function partOfKey(key){
+  for(const p in AUDIO_PARTS){
+    if(AUDIO_PARTS[p].some(pre => key.indexOf(pre) === 0)) return p;
+  }
+  return null;
+}
+function loadAudioPart(p){
+  if(loadedParts[p]) return loadedParts[p];
+  const pr = new Promise(res => {
+    const s = document.createElement('script');
+    s.src = 'audio-' + p + '.js';
+    s.onload = () => { rebuildTextIndex(); res(); };
+    s.onerror = () => { delete loadedParts[p]; res(); };   // 加载失败静默降级为系统语音，可重试
+    document.head.appendChild(s);
+  });
+  loadedParts[p] = pr;
+  return pr;
+}
+function ensurePartsFor(texts){
+  const parts = new Set(['core']);            // core 始终确保（表扬/鼓励/欢迎常用）
+  (Array.isArray(texts) ? texts : [texts]).forEach(t => {
+    if(!t) return;
+    const k = textToKey[t];
+    const p = k && partOfKey(k);
+    if(p && !loadedParts[p]) parts.add(p);
+  });
+  return Promise.all([...parts].map(loadAudioPart));
+}
+
 /* ================= 真声音频播放（优先），系统语音兜底 ================= */
 const textToKey = {};
-if (typeof AUDIO_DATA !== 'undefined') {
-  for (const k in AUDIO_DATA) textToKey[AUDIO_DATA[k].t] = k;
+function rebuildTextIndex(){
+  const d = window.AUDIO_DATA;
+  if(!d) return;
+  for(const k in d){ const it = d[k]; if(it && it.t) textToKey[it.t] = k; }
 }
 let currentAudio = null;
 function stopCurrentAudio(){
@@ -316,27 +519,29 @@ function stopCurrentAudio(){
     currentAudio = null;
   }
 }
-/* texts: 字符串数组。每个字符串若在语音包里有对应的预录音频则播放真声，否则用系统语音朗读 */
+/* texts: 字符串数组。每个字符串若在已加载的语音分片里有预录音频则播放真声，否则用系统语音朗读 */
 function playTexts(texts, done){
   if(muted){ if(done) setTimeout(done, 400); return; }
   const items = (Array.isArray(texts) ? texts : [texts]).filter(x => x);
-  let i = 0;
-  const next = () => {
-    if(i >= items.length){ if(done) done(); return; }
-    const text = items[i++];
-    const key = textToKey[text];
-    stopCurrentAudio();
-    if(key && AUDIO_DATA[key] && AUDIO_DATA[key].s){
-      const a = new Audio(AUDIO_DATA[key].s);
-      currentAudio = a;
-      const fin = () => { a.onended = a.onerror = null; setTimeout(next, 140); };
-      a.onended = fin; a.onerror = fin;
-      a.play().catch(() => speakSeq([{ t: text }], next));
-    }else{
-      speakSeq([{ t: text }], next);
-    }
-  };
-  next();
+  ensurePartsFor(items).then(() => {
+    let i = 0;
+    const next = () => {
+      if(i >= items.length){ if(done) done(); return; }
+      const text = items[i++];
+      const key = textToKey[text];
+      stopCurrentAudio();
+      if(key && window.AUDIO_DATA[key] && window.AUDIO_DATA[key].s){
+        const a = new Audio(window.AUDIO_DATA[key].s);
+        currentAudio = a;
+        const fin = () => { a.onended = a.onerror = null; setTimeout(next, 140); };
+        a.onended = fin; a.onerror = fin;
+        a.play().catch(() => speakSeq([{ t: text }], next));
+      }else{
+        speakSeq([{ t: text }], next);
+      }
+    };
+    next();
+  });
 }
 
 /* ================= 题库 ================= */
@@ -449,6 +654,9 @@ function pupSVG(p, w){
     <circle cx="75" cy="21" r="7.5" fill="#bae6fd" stroke="#ec4899" stroke-width="3"/>
     <rect x="52" y="18" width="16" height="5" rx="2.5" fill="#ec4899"/>`;
   const hat = p.hat === 'police' ? hatPolice : p.hat === 'fire' ? hatFire : p.hat === 'pilot' ? hatPilot : '';
+  const hatDef = hat ? `<linearGradient id="${u}h" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${p.hatC[0]}"/><stop offset="100%" stop-color="${p.hatC[1]}"/>
+    </linearGradient>` : '';
   return `<svg viewBox="0 0 120 132" width="${w}" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="${u}bg" x1="0" y1="0" x2="0" y2="1">
@@ -460,9 +668,7 @@ function pupSVG(p, w){
       <linearGradient id="${u}u" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="${p.uni[0]}"/><stop offset="100%" stop-color="${p.uni[1]}"/>
       </linearGradient>
-      <linearGradient id="${u}h" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="${p.hatC[0]}"/><stop offset="100%" stop-color="${p.hatC[1]}"/>
-      </linearGradient>
+      ${hatDef}
       <filter id="${u}b" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.7"/></filter>
     </defs>
     ${sceneDefs(u)}
@@ -518,6 +724,11 @@ function genCartoon(){
   };
 }
 
+/* ---------- 角色乐园（动画明星 + 公主梦幻合并）：卡通 SVG 与 AI 插画混合出题 ---------- */
+function genFind(){
+  return Math.random() < 0.5 ? genCartoon() : genPrincess();
+}
+
 /* ---------- 公主梦幻（AI 精绘插画，emoji 兜底） ---------- */
 const PRINCESS = [
   {name:'独角兽', emoji:'🦄', img:'images/princess_unicorn.jpg'},
@@ -551,40 +762,531 @@ function genPrincess(){
 const DRESSES = [
   {label:'粉色蓬蓬裙', c:['#ff9ec6','#f06a9b']},
   {label:'蓝色星星裙', c:['#74c0fc','#339af0'], star:true},
-  {label:'紫色魔法裙', c:['#b197fc','#7048e8'], star:true},
+  {label:'紫色魔法裙', c:['#b197fc','#7048e8'], sparkle:true},
   {label:'黄色花朵裙', c:['#ffd43b','#f59f00'], flower:true},
   {label:'薄荷纱裙',   c:['#63e6be','#20c997'], veil:true},
   {label:'彩虹蛋糕裙', c:['#ff8787','#ffd43b'], rainbow:true},
+  {label:'草莓甜心裙', c:['#ff6b6b','#e64980'], dots:true},
+  {label:'美人鱼鳞裙', c:['#4dabf7','#1971c2'], scales:true},
+  {label:'珍珠纱纱裙', c:['#f8f0fc','#d0bfff'], veil:true, sparkle:true},
 ];
-const HAIRSTYLES = ['双马尾','丸子头','长直发','小卷发'];
-const HAIR_ACCS = ['小皇冠','蝴蝶结','花朵环','星星夹','不戴'];
-const DZ_WOW_TEXTS = ['哇，好漂亮呀！','这条裙子真好看！','小公主最喜欢了！','打扮得像小仙女一样！'];
+const HAIRSTYLES = ['双马尾','丸子头','长直发','小卷发','公主卷发','俏皮短发'];
+const HAIR_ACCS = ['小皇冠','蝴蝶结','花朵环','星星夹','兔耳朵','珍珠发箍','不戴'];
+const DZ_WOW_TEXTS = ['哇，好漂亮呀！','这条裙子真好看！','小公主最喜欢了！','打扮得像小仙女一样！','哇！换一个也好可爱！','配上这个刚刚好！'];
+const DZ_SCENES = ['生日派对','花仙子舞会','城堡舞会','星星派对','海边野餐','美人鱼舞会'];
+/* 完美搭配彩蛋：凑齐这套装扮 → 专属语音 + 额外星星 */
+const DZ_COMBO = [
+  { name:'经典小公主', dress:'粉色蓬蓬裙', hair:'双马尾', acc:'小皇冠', voice:'哇！经典小公主诞生啦！' },
+  { name:'海洋公主',   dress:'美人鱼鳞裙', hair:'公主卷发', acc:'珍珠发箍', voice:'哇！海洋公主真美呀！' },
+  { name:'草莓小甜心', dress:'草莓甜心裙', hair:'俏皮短发', acc:'蝴蝶结', voice:'哇！草莓小甜心好可爱！' },
+  { name:'月光小仙女', dress:'珍珠纱纱裙', hair:'长直发', acc:'花朵环', voice:'哇！月光小仙女来啦！' },
+];
+function dzTargetLabel(t){ return t.type === 'dress' ? DRESSES[t.target].label : t.type === 'hair' ? HAIRSTYLES[t.target] : HAIR_ACCS[t.target]; }
+function dzTaskText(t){
+  const icon = t.type === 'dress' ? '👗' : t.type === 'hair' ? '💇' : '👑';
+  if(t.type === 'dress') return `${icon} 今天去参加${DZ_SCENES[t.target % DZ_SCENES.length]}：穿上「${DRESSES[t.target].label}」！`;
+  if(t.type === 'hair')  return `${icon} 公主想扎个「${HAIRSTYLES[t.target]}」！`;
+  return `${icon} 帮她戴上「${HAIR_ACCS[t.target]}」！`;
+}
+
+/* ---- 换装图形化：迷你 SVG 图标（看图找一样，4 岁不用识字） ---- */
+let MINI_UID = 0;
+const MINI_GOLD = ['#ffd97a', '#e6a93f'];
+function miniDressSVG(i){
+  const u = 'md' + (++MINI_UID);
+  const dress = DRESSES[i];
+  let body, deco = '';
+  if(dress.rainbow){
+    body = `<path d="M13 10 Q20 7 27 10 L31 40 Q20 45 9 40 Z" fill="#ff8787"/>
+      <path d="M14.5 21 L25.5 21 L26.5 29 L13.5 29 Z" fill="#ffd43b"/>
+      <path d="M12.5 32 L27.5 32 L29 40 Q20 44.5 11 40 Z" fill="#74c0fc"/>`;
+  }else{
+    body = `<path d="M13 10 Q20 7 27 10 L31 40 Q20 45 9 40 Z" fill="url(#${u})"/>
+      <path d="M14 14 Q20 12 26 14 L28 22 Q20 19 12 22 Z" fill="#fff" opacity="0.22"/>`;
+  }
+  if(dress.star) deco += '<path d="M15 18 l1.4 2.8 3.1 .5 -2.2 2.1 .5 3.1 -2.8 -1.5 -2.8 1.5 .5 -3.1 -2.2 -2.1 3.1 -.5z" fill="#fff"/><path d="M27 26 l1 2 2.2 .35 -1.55 1.5 .35 2.2 -2 -1.05 -2 1.05 .35 -2.2 -1.55 -1.5 2.2 -.35z" fill="#fff" opacity="0.9"/>';
+  if(dress.sparkle) deco += '<path d="M18 16 v5 M15.5 18.5 h5 M28 22 v4 M26 24 h4" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>';
+  if(dress.flower) deco += '<circle cx="15" cy="18" r="2.6" fill="#ff8787"/><circle cx="24" cy="16" r="2.4" fill="#74c0fc"/><circle cx="20" cy="26" r="2.2" fill="#fff"/>';
+  if(dress.veil) deco += '<path d="M16 13 L14 32 M24 13 L26 32" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="2 2" opacity="0.75"/>';
+  if(dress.dots) deco += '<circle cx="15" cy="18" r="1.9" fill="#fff"/><circle cx="22" cy="15" r="1.6" fill="#fff"/><circle cx="19" cy="25" r="1.6" fill="#fff"/><circle cx="27" cy="21" r="1.6" fill="#fff"/>';
+  if(dress.scales) deco += '<ellipse cx="15" cy="18" rx="3" ry="1.7" fill="#fff" opacity="0.7"/><ellipse cx="23" cy="16" rx="3" ry="1.7" fill="#fff" opacity="0.7"/><ellipse cx="18" cy="25" rx="3" ry="1.7" fill="#fff" opacity="0.65"/><ellipse cx="26" cy="23" rx="3" ry="1.7" fill="#fff" opacity="0.65"/>';
+  return `<svg viewBox="0 0 40 46" xmlns="http://www.w3.org/2000/svg" width="40" height="46">
+    <defs><linearGradient id="${u}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${dress.c[0]}"/><stop offset="100%" stop-color="${dress.c[1]}"/>
+    </linearGradient></defs>
+    ${body}
+    <path d="M9 40 Q20 45.5 31 40" stroke="#fff" stroke-width="2" fill="none" opacity="0.75" stroke-linecap="round"/>
+    ${deco}
+  </svg>`;
+}
+function miniHairSVG(i){
+  let hair = '';
+  if(i === 0){ // 双马尾
+    hair = '<path d="M12 13 Q20 8 28 13 L30 18 Q20 13 10 18 Z" fill="#ffd97a"/>'
+      + '<ellipse cx="9" cy="16" rx="4.6" ry="6.5" fill="#e6a93f" transform="rotate(10 9 16)"/>'
+      + '<ellipse cx="31" cy="16" rx="4.6" ry="6.5" fill="#e6a93f" transform="rotate(-10 31 16)"/>'
+      + '<circle cx="9" cy="14.5" r="1.6" fill="#ff8fb0"/><circle cx="31" cy="14.5" r="1.6" fill="#ff8fb0"/>';
+  }else if(i === 1){ // 丸子头
+    hair = '<path d="M12 13 Q20 8 28 13 L30 18 Q20 13 10 18 Z" fill="#ffd97a"/>'
+      + '<circle cx="20" cy="6.5" r="4.6" fill="#ffd97a"/><path d="M18.4 6.5 h3.2" stroke="#ff8fb0" stroke-width="1.8"/>';
+  }else if(i === 2){ // 长直发
+    hair = '<path d="M11 13 Q20 6 29 13 L31 17 Q20 12 9 17 Z" fill="#ffd97a"/>'
+      + '<path d="M10 16 L8.5 33 L13 33 L14 16 Z" fill="#e6a93f"/>'
+      + '<path d="M30 16 L31.5 33 L27 33 L26 16 Z" fill="#e6a93f"/>';
+  }else if(i === 3){ // 小卷发
+    hair = '<path d="M11 13 Q20 6 29 13 L31 17 Q20 12 9 17 Z" fill="#ffd97a"/>'
+      + '<circle cx="8" cy="17" r="3.4" fill="#ffd97a"/><circle cx="9" cy="22" r="2.9" fill="#ffd97a"/>'
+      + '<circle cx="32" cy="17" r="3.4" fill="#ffd97a"/><circle cx="31" cy="22" r="2.9" fill="#ffd97a"/>';
+  }else if(i === 4){ // 公主卷发
+    hair = '<path d="M11 13 Q20 6 29 13 L31 17 Q20 12 9 17 Z" fill="#ffd97a"/>'
+      + '<ellipse cx="8" cy="18" rx="4" ry="6" fill="#e6a93f"/><circle cx="9" cy="26" r="3.6" fill="#ffd97a"/>'
+      + '<ellipse cx="32" cy="18" rx="4" ry="6" fill="#e6a93f"/><circle cx="31" cy="26" r="3.6" fill="#ffd97a"/>';
+  }else{ // 俏皮短发
+    hair = '<path d="M11 13 Q20 6 29 13 L31 17 Q20 12 9 17 Z" fill="#ffd97a"/>'
+      + '<path d="M8 14 L5 19 L10 18 Z" fill="#e6a93f"/><path d="M32 14 L35 19 L30 18 Z" fill="#e6a93f"/>'
+      + '<path d="M17 8 Q20 4.5 23 8 L20 11 Z" fill="#ffd97a"/>';
+  }
+  return `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="40" height="40">
+    ${hair}
+    <circle cx="20" cy="23" r="10.5" fill="#ffe8cf"/>
+    <circle cx="16.2" cy="24" r="1.4" fill="#4a2b4a"/><circle cx="23.8" cy="24" r="1.4" fill="#4a2b4a"/>
+    <circle cx="15.6" cy="25.8" r="1" fill="#fff"/><circle cx="23.2" cy="25.8" r="1" fill="#fff"/>
+    <circle cx="13" cy="28" r="2" fill="#ff8fb0" opacity="0.55"/><circle cx="27" cy="28" r="2" fill="#ff8fb0" opacity="0.55"/>
+  </svg>`;
+}
+function miniAccSVG(i){
+  let a = '';
+  if(i === 0){ // 小皇冠
+    a = '<path d="M12 24 L14.5 12 L20 19 L25.5 12 L28 24 Z" fill="#ffd75e" stroke="#d98f1f" stroke-width="1"/><circle cx="20" cy="17.5" r="1.5" fill="#ff6b81"/>';
+  }else if(i === 1){ // 蝴蝶结
+    a = '<path d="M20 24 Q11 18 11 24 Q10.5 29 20 27 Z" fill="#ff6b81"/><path d="M20 24 Q29 18 29 24 Q29.5 29 20 27 Z" fill="#ff6b81"/><circle cx="20" cy="25" r="3" fill="#e8590c"/>';
+  }else if(i === 2){ // 花朵环
+    a = '<path d="M12 22 Q20 14 28 22" stroke="#f9a8d4" stroke-width="3" fill="none" stroke-linecap="round"/>'
+      + '<circle cx="14.5" cy="19.5" r="2.4" fill="#ff8fab"/><circle cx="20" cy="17.5" r="2.4" fill="#f9a8d4"/><circle cx="25.5" cy="19.5" r="2.4" fill="#ff8fab"/>';
+  }else if(i === 3){ // 星星夹
+    a = '<path d="M25 14 l1.8 3.6 4 .6 -2.9 2.8 .7 4 -3.6 -1.9 -3.6 1.9 .7 -4 -2.9 -2.8 4 -.6z" fill="#ffd43b" stroke="#e8a300" stroke-width="0.8"/>';
+  }else if(i === 4){ // 兔耳朵
+    a = '<ellipse cx="17" cy="12" rx="3" ry="7" fill="#fbc6d8" stroke="#e599b8" stroke-width="0.8" transform="rotate(-8 17 12)"/>'
+      + '<ellipse cx="23" cy="12" rx="3" ry="7" fill="#fbc6d8" stroke="#e599b8" stroke-width="0.8" transform="rotate(8 23 12)"/>'
+      + '<ellipse cx="17" cy="12" rx="1.3" ry="4.2" fill="#fff" opacity="0.6" transform="rotate(-8 17 12)"/>'
+      + '<ellipse cx="23" cy="12" rx="1.3" ry="4.2" fill="#fff" opacity="0.6" transform="rotate(8 23 12)"/>';
+  }else if(i === 5){ // 珍珠发箍
+    a = '<path d="M13 23 Q20 17 27 23" stroke="#e8890c" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+      + '<circle cx="15.5" cy="20.8" r="1.6" fill="#fff" stroke="#e8890c" stroke-width="0.5"/><circle cx="20" cy="19" r="1.6" fill="#fff" stroke="#e8890c" stroke-width="0.5"/><circle cx="24.5" cy="20.8" r="1.6" fill="#fff" stroke="#e8890c" stroke-width="0.5"/>';
+  }
+  return `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="40" height="40">${a}</svg>`;
+}
+function dzTaskIconHTML(t){
+  if(t.type === 'dress') return miniDressSVG(t.target);
+  if(t.type === 'hair') return miniHairSVG(t.target);
+  return miniAccSVG(t.target);
+}
+function dzTaskHTML(t){
+  const icon = t.type === 'dress' ? '👗' : t.type === 'hair' ? '💇' : '👑';
+  const label = dzTargetLabel(t);
+  const verb = t.type === 'dress' ? '穿上' : t.type === 'hair' ? '扎个' : '戴上';
+  return `<div class="dz-task-top"><span class="dz-task-emoji">${icon}</span><span class="dz-task-ico">${dzTaskIconHTML(t)}</span></div>
+    <div class="dz-task-txt">${verb}「${label}」吧！</div>`;
+}
 
 function startDressup(){
   state.q = null;
-  state.dressup = { dress: 0, hair: 0, acc: 0 };
-  $('#prompt-visual').innerHTML = '<div id="doll-stage"></div>';
+  state.dressup = {};
+  $('#prompt-visual').innerHTML = DZ2_HTML;
   const box = $('#options');
   box.classList.remove('mem-grid');
-  box.innerHTML = '';
-  const mk = (label, fn) => {
-    const b = document.createElement('button');
-    b.className = 'option dz-btn';
-    b.innerHTML = label;
-    b.onclick = fn;
-    box.appendChild(b);
+  box.classList.add('dz-grid');
+  box.innerHTML = '';   // 换装间自带工具按钮，选项区留空（全局"再听一遍"仍可用）
+  initDZ2();
+}
+
+/* ================= 公主换装间（换装游戏集成，语音走项目真声体系） ================= */
+const DZ2_HTML = `
+<svg width="0" height="0" style="position:absolute"><defs>
+<linearGradient id="rb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6b6b"/><stop offset=".2" stop-color="#ffa94d"/><stop offset=".4" stop-color="#ffe066"/><stop offset=".6" stop-color="#8ce99a"/><stop offset=".8" stop-color="#74c0fc"/><stop offset="1" stop-color="#b197fc"/></linearGradient>
+<radialGradient id="sk" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#FFF0E2"/><stop offset="1" stop-color="#FFD3B3"/></radialGradient>
+</defs></svg>
+<div id="dz2">
+ <div id="stage">
+  <svg id="sv" viewBox="0 0 300 480">
+   <g id="g-bg"></g>
+   <g id="girl"><g id="gi" stroke="#8a5a4a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <g id="g-wb"></g><g id="g-hb"></g>
+    <g id="body">
+     <rect x="121" y="296" width="20" height="130" rx="8" fill="#FFE0C7"/><rect x="159" y="296" width="20" height="130" rx="8" fill="#FFE0C7"/>
+     <path d="M120 178L82 264M180 178L218 264" stroke="#8a5a4a" stroke-width="19"/><path d="M120 178L82 264M180 178L218 264" stroke="#FFE0C7" stroke-width="14"/>
+     <circle cx="82" cy="266" r="10" fill="#FFE0C7"/><circle cx="218" cy="266" r="10" fill="#FFE0C7"/>
+     <rect x="140" y="148" width="20" height="30" fill="#FFE0C7"/>
+     <path d="M122 166L178 166L182 244L118 244Z" fill="#fff"/>
+     <circle cx="98" cy="114" r="10" fill="#FFE0C7"/><circle cx="202" cy="114" r="10" fill="#FFE0C7"/>
+     <circle cx="150" cy="108" r="52" fill="url(#sk)"/>
+     <g stroke="none"><g class="eye"><ellipse cx="130" cy="113" rx="9" ry="12" fill="#5b3a8c"/><ellipse cx="130" cy="116" rx="5.2" ry="7.5" fill="#1f1233"/><circle cx="134" cy="107" r="3.8" fill="#fff"/><circle cx="127" cy="120" r="1.9" fill="#fff"/></g><g class="eye"><ellipse cx="170" cy="113" rx="9" ry="12" fill="#5b3a8c"/><ellipse cx="170" cy="116" rx="5.2" ry="7.5" fill="#1f1233"/><circle cx="174" cy="107" r="3.8" fill="#fff"/><circle cx="167" cy="120" r="1.9" fill="#fff"/></g>
+     <circle cx="116" cy="131" r="9" fill="#ff9ab8" opacity=".55"/><circle cx="184" cy="131" r="9" fill="#ff9ab8" opacity=".55"/></g>
+     <g fill="none" stroke="#6b4235" stroke-width="2.6"><path d="M119 94Q130 88 141 93M159 93Q170 88 181 94"/><path d="M119 104Q130 97 142 103M158 103Q170 97 181 104" stroke-width="3.2"/></g><circle cx="150" cy="124" r="2" fill="#f0a98d" stroke="none"/><path id="mouth" d="M138 130Q150 144 162 130" fill="none"/>
+    </g>
+    <g id="g-sh"></g><g id="g-dr"></g><g id="g-hf"></g><g id="g-ht"></g><g id="g-mh"></g>
+   </g></g>
+  </svg>
+  <div id="tools"><button class="fab" id="rnd">🎲</button><button class="fab" id="cam">📷</button><button class="fab" id="rst">🔄</button></div>
+ </div>
+ <div id="panel"><div id="tabs"></div><div id="sw"></div><div id="items"></div></div>
+ <div id="fx"></div><div id="flash"></div>
+</div>`;
+
+let dz2LastSay = [];
+function dz2Say(texts){
+  dz2LastSay = Array.isArray(texts) ? texts : [texts];
+  playTexts(dz2LastSay);
+}
+
+function initDZ2(){
+  (function(){
+    const rnd = n => Math.floor(Math.random()*n);
+    const t = (e,x,y,s,a='') => `<text x="${x}" y="${y}" font-size="${s}" ${a} stroke="none">${e}</text>`;
+    const M = 'text-anchor="middle"';
+    const heart = (cx,cy,s,c) => `<path d="M${cx} ${cy+s*0.3} L${cx-s*0.9} ${cy-s*0.2} L${cx-s*0.5} ${cy-s*0.9} L${cx} ${cy-s*0.4} L${cx+s*0.5} ${cy-s*0.9} L${cx+s*0.9} ${cy-s*0.2} Z" fill="${c}" stroke="none"/>`;
+    const spark = (cx,cy,s,c) => `<path d="M${cx} ${cy-s} L${cx+s*0.3} ${cy-s*0.3} L${cx+s} ${cy} L${cx+s*0.3} ${cy+s*0.3} L${cx} ${cy+s} L${cx-s*0.3} ${cy+s*0.3} L${cx-s} ${cy} L${cx-s*0.3} ${cy-s*0.3} Z" fill="${c}" stroke="none"/>`;
+    const dec = e => {
+      const q = [[108,300],[150,264],[192,306],[132,342],[172,346]];
+      const g = (k) => q.map(p => {
+        const [x,y] = p, s = 9;
+        return k === '🎀' ? `<path d="M${x-10} ${y-8} L${x} ${y} L${x+10} ${y-8} L${x+10} ${y+8} L${x} ${y} L${x-10} ${y+8} Z" fill="#ff4f9a" stroke="none"/>`
+          : k === '⭐' ? star5(x,y,s+3,'#ffd43b','#e8a300')
+          : k === '🌻' ? flower(x,y,false)
+          : k === '❄️' ? `<path d="M${x} ${y-s*1.6} L${x} ${y+s*1.6} M${x-s*1.4} ${y-s*0.8} L${x+s*1.4} ${y+s*0.8} M${x+s*1.4} ${y-s*0.8} L${x-s*1.4} ${y+s*0.8}" stroke="#fff" stroke-width="3.6" stroke-linecap="round" fill="none"/>`
+          : k === '🍓' ? `<path d="M${x-s*1.5} ${y-s*1.4} L${x+s*1.5} ${y-s*1.4} L${x+s*1.4} ${y+s*0.4} L${x} ${y+s*1.6} L${x-s*1.4} ${y+s*0.4} Z" fill="#ff4757" stroke="none"/><path d="M${x} ${y-s*1.7} L${x-s*0.9} ${y-s*1.2} L${x+s*0.9} ${y-s*1.2} Z" fill="#2ed573" stroke="none"/>`
+          : `<path d="M${x-s*1.8} ${y+s*0.4} Q${x} ${y-s*1.4} ${x+s*1.8} ${y+s*0.4}" stroke="#ff6b6b" stroke-width="4.4" fill="none"/><path d="M${x-s*1.1} ${y+s*0.4} Q${x} ${y-s*0.5} ${x+s*1.1} ${y+s*0.4}" stroke="#ffd43b" stroke-width="4.4" fill="none"/><path d="M${x-s*0.5} ${y+s*0.4} Q${x} ${y+s*0.3} ${x+s*0.5} ${y+s*0.4}" stroke="#74c0fc" stroke-width="4.4" fill="none"/>`;
+      }).join('');
+      return g(e);
+    };
+    const gown = (c,e,b) => `<path d="M122 166L178 166L182 228L238 350Q150 378 62 350L118 228Z" fill="${c}"/><circle cx="116" cy="178" r="15" fill="${c}"/><circle cx="184" cy="178" r="15" fill="${c}"/><path d="M64 342Q150 370 236 342L238 350Q150 378 62 350Z" fill="${b}"/><rect x="117" y="222" width="66" height="12" rx="5" fill="${b}"/><path d="M132 242L100 326" stroke="#fff" stroke-opacity=".45" stroke-width="8" fill="none"/>${dec(e)}`;
+    const cap = c => `<path d="M93 112Q92 50 150 50Q208 50 207 112Z" fill="${c}"/>`;
+    const fr = c => `<path d="M97 104Q108 58 150 58Q192 58 203 104Q172 76 150 88Q128 76 97 104Z" fill="${c}"/><path d="M112 84Q130 64 158 62" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="6"/>`;
+    const flower = (cx, cy, alt) => {
+      const pet = alt ? '#ffb3c7' : '#ffd43b', core = alt ? '#ff4f9a' : '#f08c00';
+      const p = a => `<ellipse cx="${cx}" cy="${cy}" rx="7" ry="3.8" fill="${pet}" transform="rotate(${a} ${cx} ${cy})"/>`;
+      return `<g stroke="none">${p(0)}${p(72)}${p(144)}${p(216)}${p(288)}<circle cx="${cx}" cy="${cy}" r="4.4" fill="${core}"/></g>`;
+    };
+    const star5 = (cx, cy, r, c, s) => `<path d="M${cx} ${cy - r} L${cx + r*0.29} ${cy - r*0.31} L${cx + r*0.95} ${cy - r*0.31} L${cx + r*0.42} ${cy + r*0.12} L${cx + r*0.59} ${cy + r*0.81} L${cx} ${cy + r*0.42} L${cx - r*0.59} ${cy + r*0.81} L${cx - r*0.42} ${cy + r*0.12} L${cx - r*0.95} ${cy - r*0.31} L${cx - r*0.29} ${cy - r*0.31} Z" fill="${c}" stroke="${s}" stroke-width="1.2" stroke-linejoin="round"/>`;
+    const long = c => `<path d="M92 108Q90 48 150 48Q210 48 208 108L216 252Q150 268 84 252Z" fill="${c}"/>`;
+    const curls = c => [[92,104],[86,142],[92,180],[104,214]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="26" fill="${c}"/><circle cx="${300-p[0]}" cy="${p[1]}" r="26" fill="${c}"/>`).join('') + cap(c);
+    const shoe = (c,e) => `<ellipse cx="131" cy="425" rx="25" ry="12" fill="${c}"/><ellipse cx="169" cy="425" rx="25" ry="12" fill="${c}"/><ellipse cx="121" cy="421" rx="9" ry="3.5" fill="#fff" fill-opacity=".55" stroke="none"/><ellipse cx="159" cy="421" rx="9" ry="3.5" fill="#fff" fill-opacity=".55" stroke="none"/>` + (e ? (e === '❤️' ? heart(131,431,5,'#fff') + heart(169,431,5,'#fff') : e === '✨' ? spark(131,431,5,'#fff') + spark(169,431,5,'#ffd84d') : star5(131,431,5,'#ffd43b','#e8a300') + star5(169,431,5,'#ffd43b','#e8a300')) : '');
+    const boot = c => `<rect x="108" y="390" width="44" height="34" rx="10" fill="${c}"/><rect x="148" y="390" width="44" height="34" rx="10" fill="${c}"/><ellipse cx="128" cy="425" rx="28" ry="10" fill="${c}"/><ellipse cx="172" cy="425" rx="28" ry="10" fill="${c}"/>`;
+    const wing = (a,b) => `<ellipse cx="62" cy="190" rx="56" ry="78" transform="rotate(-18 62 190)" fill="${a}"/><ellipse cx="238" cy="190" rx="56" ry="78" transform="rotate(18 238 190)" fill="${a}"/><ellipse cx="86" cy="268" rx="34" ry="46" transform="rotate(-18 86 268)" fill="${b}"/><ellipse cx="214" cy="268" rx="34" ry="46" transform="rotate(18 214 268)" fill="${b}"/>`;
+    const NONE = { n:'', none:1 };
+    const D = {
+      dr:[
+        {n:'粉色公主裙', dr:gown('#ff9ec7','🎀','#ff5fa2')},
+        {n:'紫色星星裙', dr:gown('#b58cff','⭐','#7b4dff')},
+        {n:'黄色花花裙', dr:gown('#ffd84d','🌻','#ff9f1c')},
+        {n:'蓝色冰雪裙', dr:gown('#7ed6ff','❄️','#2e9bff')},
+        {n:'红色草莓裙', dr:gown('#ff6b6b','🍓','#d62839')},
+        {n:'彩虹裙', dr:gown('url(#rb)','🌈','#fff')}],
+      hr:[
+        {n:'长直发', f:c=>({ hb:long(c), hf:fr(c) })},
+        {n:'双马尾', f:c=>({ hb:cap(c)+`<ellipse cx="72" cy="150" rx="20" ry="52" transform="rotate(8 72 150)" fill="${c}"/><ellipse cx="228" cy="150" rx="20" ry="52" transform="rotate(-8 228 150)" fill="${c}"/>`, hf:fr(c)+`<circle cx="90" cy="104" r="9" fill="#fff"/><circle cx="210" cy="104" r="9" fill="#fff"/>`})},
+        {n:'丸子头', f:c=>({ hb:`<circle cx="150" cy="38" r="27" fill="${c}"/>`+cap(c), hf:fr(c) })},
+        {n:'卷卷发', f:c=>({ hb:curls(c), hf:fr(c) })},
+        {n:'波波头', f:c=>({ hb:`<path d="M92 108Q90 48 150 48Q210 48 208 108L212 176Q150 190 88 176Z" fill="${c}"/>`, hf:fr(c) })},
+        {n:'公主波浪发', f:c=>({ hb:`<path d="M92 108Q90 48 150 48Q210 48 208 108Q222 150 214 190Q226 230 206 262Q178 250 150 266Q122 250 94 262Q74 230 86 190Q78 150 92 108Z" fill="${c}"/>`, hf:fr(c) })}],
+      ht:[NONE,
+        {n:'金色皇冠', ht:`<path d="M108 66L114 26L134 46L150 18L166 46L186 26L192 66Z" fill="#ffd84d"/><circle cx="150" cy="40" r="6" fill="#ff5fa2"/><circle cx="122" cy="52" r="4" fill="#4dabff"/><circle cx="178" cy="52" r="4" fill="#4dabff"/>`},
+        {n:'粉色蝴蝶结', ht:`<path d="M150 62L100 38L100 86Z" fill="#ff7eb6"/><path d="M150 62L200 38L200 86Z" fill="#ff7eb6"/><circle cx="150" cy="62" r="11" fill="#ff4f9a"/>`},
+        {n:'花花头环', ht:[[102,84],[122,66],[150,58],[178,66],[198,84]].map((p,i)=>flower(p[0],p[1],i%2===1)).join('')},
+        {n:'小猫耳朵', ht:`<path d="M100 78L108 22L142 56Z" fill="#666"/><path d="M200 78L192 22L158 56Z" fill="#666"/><path d="M110 62L113 38L130 56Z" fill="#ffb3c7" stroke="none"/><path d="M190 62L187 38L170 56Z" fill="#ffb3c7" stroke="none"/>`},
+        {n:'独角兽角', ht:`<path d="M112 70L108 40L132 58Z" fill="#fff"/><path d="M188 70L192 40L168 58Z" fill="#fff"/><path d="M138 62L150 0L162 62Z" fill="#ffe27a"/><path d="M142 42L158 38M140 54L160 50" stroke="#ff7eb6"/>`},
+        {n:'白色兔耳朵', ht:`<ellipse cx="120" cy="26" rx="14" ry="40" transform="rotate(-14 120 26)" fill="#fff"/><ellipse cx="180" cy="26" rx="14" ry="40" transform="rotate(14 180 26)" fill="#fff"/><ellipse cx="121" cy="30" rx="6" ry="26" transform="rotate(-14 121 30)" fill="#ffb3c7" stroke="none"/><ellipse cx="179" cy="30" rx="6" ry="26" transform="rotate(14 179 30)" fill="#ffb3c7" stroke="none"/>`}],
+      sh:[
+        {n:'粉色小皮鞋', sh:shoe('#ff8fc0')},
+        {n:'红色爱心鞋', sh:shoe('#ff4d6d','❤️')},
+        {n:'蓝色小靴子', sh:boot('#4dabff')},
+        {n:'金色闪闪鞋', sh:shoe('#ffd84d','✨')},
+        {n:'紫色星星鞋', sh:shoe('#a06cff','⭐')}],
+      mg:[NONE,
+        {n:'蝴蝶翅膀', wb:wing('#ff9ad5','#c9a6ff')},
+        {n:'天使翅膀', wb:wing('#fff','#fff4c2')},
+        {n:'魔法棒', mh:`<line x1="219" y1="268" x2="252" y2="202" stroke="#ff7eb6" stroke-width="10" stroke-linecap="round"/>${star5(252, 184, 15, '#ffd43b', '#e8a300')}`},
+        {n:'气球', mh:`<line x1="219" y1="268" x2="236" y2="152" stroke="#999" stroke-width="2"/><line x1="219" y1="268" x2="266" y2="172" stroke="#999" stroke-width="2"/><ellipse cx="236" cy="124" rx="26" ry="32" fill="#ff6b6b"/><ellipse cx="266" cy="146" rx="22" ry="28" fill="#4dabff"/>`},
+        {n:'棒棒糖', mh:`<line x1="238" y1="264" x2="238" y2="212" stroke="#fff" stroke-width="6" stroke-linecap="round"/><circle cx="238" cy="196" r="18" fill="#ff6b6b"/><path d="M238 178 Q256 196 238 214" stroke="#fff" stroke-width="5" fill="none"/><path d="M238 178 Q220 196 238 214" stroke="#fff" stroke-width="5" fill="none"/><path d="M238 196 Q220 214 238 214 M238 196 Q256 214 238 214" stroke="#ffd43b" stroke-width="5" fill="none"/>`},
+        {n:'小熊', mh:`<circle cx="50" cy="284" r="17" fill="#a06c4a"/><circle cx="40" cy="270" r="9.5" fill="#a06c4a"/><circle cx="60" cy="270" r="9.5" fill="#a06c4a"/><circle cx="42" cy="271" r="3" fill="#fff"/><circle cx="58" cy="271" r="3" fill="#fff"/><circle cx="43" cy="272.5" r="1.6" fill="#3a2417"/><circle cx="57" cy="272.5" r="1.6" fill="#3a2417"/><ellipse cx="50" cy="285" rx="3.4" ry="2.2" fill="#3a2417"/><ellipse cx="50" cy="296" rx="11.5" ry="9" fill="#c98a5e"/><circle cx="44" cy="296" r="2" fill="#a06c4a"/><circle cx="56" cy="296" r="2" fill="#a06c4a"/>`}],
+      bg:[
+        {n:'花园', c:'linear-gradient(#bdeaff 85%,#9be37a 85%)', bg:`<rect width="300" height="480" fill="#bdeaff"/><rect y="410" width="300" height="70" fill="#9be37a"/>`+t('☁️',30,80,50)+t('☁️',220,120,40)+t('🦋',40,250,34)+t('🌷',20,440,40)+t('🌻',250,440,44)+t('🌸',90,460,30)},
+        {n:'魔法城堡', c:'linear-gradient(#ffd6ec 85%,#b8e986 85%)', bg:`<rect width="300" height="480" fill="#ffd6ec"/><rect y="410" width="300" height="70" fill="#b8e986"/>`+t('🏰',160,412,130)+t('☁️',20,80,50)+t('🌈',60,200,80)},
+        {n:'海边', c:'linear-gradient(#aee6ff 62%,#4fc3f7 62%,#4fc3f7 85%,#ffe8a3 85%)', bg:`<rect width="300" height="480" fill="#aee6ff"/><rect y="300" width="300" height="110" fill="#4fc3f7"/><rect y="410" width="300" height="70" fill="#ffe8a3"/>`+t('☀️',210,80,56)+t('⛵',40,340,50)+t('🌴',10,430,72)+t('🐚',250,456,34)+t('🦀',70,470,30)},
+        {n:'星空', c:'linear-gradient(#2d2a72 85%,#4a47a3 85%)', bg:`<rect width="300" height="480" fill="#2d2a72"/><rect y="410" width="300" height="70" fill="#4a47a3"/>`+t('🌙',200,100,60)+t('⭐',30,70,30)+t('✨',60,210,30)+t('✨',250,260,28)+t('⭐',120,40,24)},
+        {n:'糖果屋', c:'linear-gradient(#ffc9de 85%,#ffb3d1 85%)', bg:`<rect width="300" height="480" fill="#ffc9de"/><rect y="410" width="300" height="70" fill="#ffb3d1"/>`+t('🍭',20,340,60)+t('🧁',230,340,60)+t('🍩',30,455,50)+t('🍬',250,455,40)+t('🍦',120,90,50)},
+        {n:'雪地', c:'linear-gradient(#dff3ff 85%,#fff 85%)', bg:`<rect width="300" height="480" fill="#dff3ff"/><rect y="410" width="300" height="70" fill="#fff"/>`+t('⛄',200,420,90)+t('🎄',6,420,80)+t('❄️',40,80,34)+t('❄️',230,150,28)+t('❄️',100,230,24)}]
+    };
+    const T = [['dr','👗'],['hr','👧'],['ht','👑'],['sh','👠'],['mg','🪄'],['bg','🏰']];    const V = { dr:'55 150 190 230', hr:'60 30 180 240', ht:'80 -10 140 120', sh:'90 380 120 70', mg:'0 90 300 240', bg:'0 120 300 300' };
+    const ORDER = ['bg','wb','hb','sh','dr','hf','ht','mh'];
+    const MAP = { dr:['dr'], hr:['hb','hf'], ht:['ht'], sh:['sh'], mg:['wb','mh'], bg:['bg'] };
+    const DEF = () => ({ dr:0, hr:0, sh:0, ht:0, mg:0, bg:0 });
+    const HEAD = '<circle cx="150" cy="108" r="52" fill="#FFE0C7"/><circle cx="130" cy="112" r="6" fill="#3b2a2a" stroke="none"/><circle cx="170" cy="112" r="6" fill="#3b2a2a" stroke="none"/>';
+    const HC = [['棕色','#8b5a2b'],['黑色','#2b2b3a'],['金色','#f7c948'],['橙色','#ff9f43'],['红色','#e8453c'],['粉色','#ff8fc0'],['紫色','#a06cff'],['蓝色','#4dabff'],['绿色','#51cf66'],['白银色','#e9ecef'],['薰衣草色','#c9b3ff'],['彩虹色','url(#rb)']];
+    const LY = (c,it) => it && it.f ? it.f(HC[hc][1]) : it;
+    let st = DEF(), cur = 'dr', n = 0, ac = null, hc = 0;
+
+    function render(){
+      Object.keys(MAP).forEach(c => {
+        const it = LY(c, D[c][st[c]]);
+        MAP[c].forEach(l => { const g = $('#g-' + l); if(g) g.innerHTML = (it && it[l]) || ''; });
+      });
+      $('#stage').style.background = D.bg[st.bg].c;
+    }
+    function thumb(c,it){
+      if(it.none) return `<svg viewBox="0 0 60 60"><path d="M17 17 L43 43 M43 17 L17 43" stroke="#c3c3d4" stroke-width="7" stroke-linecap="round"/></svg>`;
+      const q = LY(c, it);
+      const inner = ORDER.map(l => (q[l] || '') + (l === 'hb' && (c === 'hr' || c === 'ht') ? HEAD : '')).join('');
+      return `<svg viewBox="${V[c]}">${c === 'bg' ? inner : `<g stroke="#8a5a4a" stroke-width="2.5" stroke-linejoin="round">${inner}</g>`}</svg>`;
+    }
+    function swatches(c){
+      const w = $('#sw'); w.style.display = c === 'hr' ? 'flex' : 'none'; if(c !== 'hr') return;
+      w.innerHTML = '';
+      HC.forEach((h,i) => {
+        const b = document.createElement('button'); b.className = 'sq' + (i === hc ? ' on' : '');
+        b.style.background = h[1].startsWith('url') ? 'linear-gradient(#ff6b6b,#ffe066,#74c0fc,#b197fc)' : h[1];
+        b.onclick = () => { hc = i; render(); show('hr'); anim('bn'); smile(); burst(8); chime(); if(!award()) dz2Say(['换个发色，真漂亮！']); };
+        w.append(b);
+      });
+    }
+    function show(c){
+      cur = c;
+      document.querySelectorAll('#dz2 .tab').forEach(b => b.classList.toggle('on', b.dataset.c === c));
+      swatches(c);
+      const box = $('#items'); box.innerHTML = ''; box.scrollTop = 0;
+      D[c].forEach((it,i) => {
+        const b = document.createElement('button'); b.className = 'it' + (st[c] === i ? ' on' : ''); b.innerHTML = thumb(c,it);
+        b.onclick = () => pick(c,i); box.append(b);
+      });
+    }
+    function anim(cls){ const g = $('#gi'); g.classList.remove('bn','tw'); void g.getBoundingClientRect(); g.classList.add(cls); }
+    function center(){ const r = $('#sv').getBoundingClientRect(); return [r.left + r.width/2, r.top + r.height*.4]; }
+    function burst(k, em){
+      if(!em) em = ['✨','⭐','💖','🌟','🎀'];
+      const [x,y] = center(), fx = $('#fx');
+      for(let i = 0; i < k; i++){
+        const s = document.createElement('span'); s.textContent = em[rnd(em.length)];
+        s.style.left = x + 'px'; s.style.top = y + 'px'; s.style.fontSize = (20 + rnd(24)) + 'px'; fx.append(s);
+        const dx = (Math.random()-.5)*340, dy = -60 - Math.random()*220;
+        s.animate([{ transform:'translate(-50%,-50%) scale(.4)', opacity:1 }, { transform:`translate(${dx}px,${dy}px) rotate(${rnd(360)}deg) scale(1.2)`, opacity:0 }], { duration:900 + rnd(500), easing:'ease-out' }).onfinish = () => s.remove();
+      }
+    }
+    function snd(f,d,ty,v){
+      if(!ac || muted) return;
+      d = d || .2; ty = ty || 'triangle'; v = v || .25;
+      const o = ac.createOscillator(), g = ac.createGain(), nn = ac.currentTime;
+      o.type = ty; o.frequency.value = f; g.gain.setValueAtTime(v, nn); g.gain.exponentialRampToValueAtTime(.001, nn + d);
+      o.connect(g); g.connect(ac.destination); o.start(); o.stop(nn + d);
+    }
+    const P = [523,587,659,784,880,1047];
+    const chime = () => { const f = P[rnd(6)]; snd(f); setTimeout(() => snd(f*1.5,.25), 110); };
+    const fanfare = () => P.forEach((f,i) => setTimeout(() => snd(f,.3), i*90));
+    function smile(){
+      const m = $('#mouth'); m.setAttribute('d','M136 128Q150 158 164 128Z'); m.setAttribute('fill','#ff6b8a');
+      setTimeout(() => { m.setAttribute('d','M138 130Q150 144 162 130'); m.setAttribute('fill','none'); }, 1200);
+    }
+    function award(){
+      n++;
+      if(n % 5 === 0){
+        burst(32, ['🌟','🎉','🌈','💖','⭐']); fanfare();
+        addStars(1); showPraise('⭐ 大星星 +1！');
+        dz2Say(['太棒啦，得到一颗大星星！']);
+        return true;
+      }
+      return false;
+    }
+    function pick(c,i){
+      st[c] = i; render(); show(c);
+      const it = D[c][i];
+      anim('bn'); smile(); burst(10); chime();
+      if(!award() && !it.none){
+        const pr = ['真漂亮！','好好看呀！','太美啦！','闪闪发光！'];
+        if(c === 'bg'){ dz2Say(['来到' + it.n + '啦！']); }
+        else {
+          const verb = { dr:'穿上', hr:'扎个', ht:'戴上', sh:'穿上', mg:'' }[c] || '';
+          dz2Say([verb + it.n + '，真漂亮！', pr[(Math.random()*pr.length)|0]]);
+        }
+      }
+    }
+    const $rnd = $('#rnd'); if($rnd) $rnd.onclick = () => {
+      Object.keys(D).forEach(c => st[c] = rnd(D[c].length)); hc = rnd(HC.length);
+      render(); show(cur); anim('tw'); smile(); burst(20); fanfare();
+      if(!award()) dz2Say(['魔法变装！变变变！']);
+    };
+    const $cam = $('#cam'); if($cam) $cam.onclick = () => {
+      const f = $('#flash'); f.classList.add('on'); snd(1200,.06,'square',.15); setTimeout(() => snd(800,.1,'square',.15), 70);
+      setTimeout(() => { f.classList.remove('on'); burst(18,['🎉','✨','💖','📸']); addStars(1); showPraise('📸 咔嚓！'); dz2Say(['咔嚓！拍好啦，真漂亮！']); }, 120);
+    };
+    const $rst = $('#rst'); if($rst) $rst.onclick = () => { st = DEF(); hc = 0; render(); show(cur); anim('bn'); dz2Say(['变回原来的样子啦']); };
+    const $girl = $('#girl'); if($girl) $girl.addEventListener('pointerdown', () => {
+      anim('tw'); chime(); smile(); burst(6);
+      dz2Say([['转圈圈！','哈哈哈，好痒呀！','我是小公主！'][rnd(3)]]);
+    });
+    T.forEach(([c,e]) => {
+      const b = document.createElement('button'); b.className = 'tab'; b.dataset.c = c; b.textContent = e;
+      b.onclick = () => { show(c); chime(); };
+      $('#tabs').append(b);
+    });
+    render(); show('dr');
+    // 进模块直接开始（无启动页）：初始化音效 + 欢迎语音
+    try{ ac = new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); }catch(e){}
+    fanfare(); burst(16);
+    dz2Say(['欢迎来到公主换装间，快来选漂亮的衣服吧！']);
+  })();
+}
+
+/* ---- 拖拽换装：从物品栏拖到娃娃身上就穿上（点一下也穿上） ---- */
+let dzShelfPart = 'dress';
+const DZ_PART_META = {
+  dress: { len: () => DRESSES.length,   icon: miniDressSVG, label: i => DRESSES[i].label },
+  hair:  { len: () => HAIRSTYLES.length, icon: miniHairSVG,  label: i => HAIRSTYLES[i] },
+  acc:   { len: () => HAIR_ACCS.length,  icon: miniAccSVG,   label: i => HAIR_ACCS[i] },
+};
+function renderShelf(){
+  const shelf = $('#dz-shelf');
+  if(!shelf) return;
+  const p = dzShelfPart, meta = DZ_PART_META[p];
+  const cur = state.dressup[p];
+  shelf.innerHTML = '';
+  for(let i = 0; i < meta.len(); i++){
+    const b = document.createElement('div');
+    b.className = 'dz-item' + (i === cur ? ' on' : '');
+    b.dataset.p = p; b.dataset.i = i;
+    b.innerHTML = `${meta.icon(i)}<span class="dz-item-txt">${meta.label(i)}</span>`;
+    shelf.appendChild(b);
+  }
+}
+function bindShelfDrag(){
+  const shelf = $('#dz-shelf');
+  const stage = $('#doll-stage');
+  if(!shelf || shelf.__dzDrag) return;
+  shelf.__dzDrag = true;
+  let src = null, part = null, idx = 0, ghost = null, dragging = false, sx = 0, sy = 0, justHandled = 0;
+  const onDown = e => {
+    const item = e.target.closest('.dz-item');
+    if(!item) return;
+    src = item; part = item.dataset.p; idx = +item.dataset.i;
+    dragging = false; sx = e.clientX; sy = e.clientY;
   };
-  mk('👗 换裙子', () => changeOutfit('dress'));
-  mk('💇 换发型', () => changeOutfit('hair'));
-  mk('👑 换头饰', () => changeOutfit('acc'));
-  mk('✨ 真好看', () => {
-    addStars(1);
-    confetti();
-    showPraise(pick(['👗 公主真漂亮！','👑 打扮得真好看！','🌟 小仙女下凡啦！']));
-    playTexts([pick(DZ_WOW_TEXTS)]);
+  shelf.addEventListener('pointerdown', onDown);
+  // 点按兜底：pointer 事件不可用时（或极短点按）也直接穿上
+  shelf.addEventListener('click', e => {
+    const item = e.target.closest('.dz-item');
+    if(!item) return;
+    if(Date.now() - justHandled < 400) return;   // pointerup 刚处理过，避免双穿
+    changeOutfitTo(item.dataset.p, +item.dataset.i);
   });
+  window.addEventListener('pointermove', e => {
+    if(!src) return;
+    if(!dragging && (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10)){
+      dragging = true;
+      src.classList.add('dragging');
+      ghost = document.createElement('div');
+      ghost.className = 'dz-ghost';
+      ghost.innerHTML = DZ_PART_META[part].icon(idx);
+      document.body.appendChild(ghost);
+    }
+    if(ghost) ghost.style.left = e.clientX + 'px', ghost.style.top = e.clientY + 'px';
+  });
+  const finish = e => {
+    if(!src) return;
+    const wasDrag = dragging;
+    const dropX = e.clientX, dropY = e.clientY;
+    const item = src; const p = part; const i = idx;
+    src = null; part = null; idx = 0; dragging = false;
+    item.classList.remove('dragging');
+    const stageRect = stage && stage.getBoundingClientRect();
+    const onDoll = wasDrag && stageRect && dropX >= stageRect.left && dropX <= stageRect.right
+      && dropY >= stageRect.top && dropY <= stageRect.bottom;
+    if(ghost){
+      if(onDoll){
+        ghost.classList.add('fly');
+        ghost.style.left = (stageRect.left + stageRect.width/2) + 'px';
+        ghost.style.top = (stageRect.top + stageRect.height*0.45) + 'px';
+        setTimeout(() => ghost && ghost.remove(), 300);
+      }else{
+        ghost.remove(); ghost = null;
+      }
+    }
+    if(!wasDrag || onDoll) changeOutfitTo(p, i);   // 点按即穿；拖到娃娃身上也穿
+    justHandled = Date.now();
+  };
+  window.addEventListener('pointerup', finish);
+  window.addEventListener('pointercancel', () => { if(ghost) ghost.remove(); ghost = null; if(src) src.classList.remove('dragging'); src = null; dragging = false; });
+}
+function changeOutfitTo(part, idx){
+  const d = state.dressup;
+  if(!d) return;
+  d[part] = idx;
+  const fresh = collectCheck(part, idx);
   renderDoll();
-  playTexts(['公主换装！给小公主穿上最漂亮的衣服吧！']);
+  renderShelf();
+  const task = d.task;
+  const act = { dress:'换裙子！', hair:'换个发型！', acc:'戴个新头饰！' }[part];
+  if(task && task.type === part && idx === task.target){ finishDressTask(false); }
+  else if(task && task.type === part){ playTexts([act, `再找找，她想要的是「${dzTargetLabel(task)}」哦～`]); }
+  else if(fresh){ playTexts([act, '哇，又收集到一件新衣服啦！', pick(DZ_WOW_TEXTS)]); }
+  else { playTexts([act, pick(DZ_WOW_TEXTS)]); }
+}
+function changeOutfit(part){   // 兼容旧调用：顺序换下一件
+  const d = state.dressup;
+  if(!d) return;
+  const len = DZ_PART_META[part].len();
+  changeOutfitTo(part, (d[part] + 1) % len);
+}
+
+function newDressTask(){
+  const d = state.dressup;
+  if(!d) return;
+  if($('#game').classList.contains('hidden')) return;   // 已返回首页，不再播新任务
+  const type = pick(['dress','hair','acc']);
+  let target;
+  if(type === 'dress') target = Math.floor(Math.random()*DRESSES.length);
+  else if(type === 'hair') target = Math.floor(Math.random()*HAIRSTYLES.length);
+  else target = Math.floor(Math.random()*6);          // “不戴”不作出题目标
+  d.task = { type, target };
+  const card = $('#dz-task');
+  if(card){ card.classList.remove('ok'); card.innerHTML = dzTaskHTML(d.task); }
+  const label = dzTargetLabel(d.task);
+  if(d.task.type === 'dress') playTexts([`今天去参加${DZ_SCENES[d.task.target % DZ_SCENES.length]}，帮她穿上「${label}」吧！`]);
+  else if(d.task.type === 'hair') playTexts([`公主想换个新发型，扎个「${label}」吧！`]);
+  else playTexts([`还差一点点！帮她戴上「${label}」吧！`]);
+}
+
+function finishDressTask(fromMagic){
+  const d = state.dressup;
+  if(!d || !d.task) return;
+  d.streak++;
+  const combo = DZ_COMBO.find(c =>
+    DRESSES[d.dress].label === c.dress && HAIRSTYLES[d.hair] === c.hair && HAIR_ACCS[d.acc] === c.acc) || null;
+  let stars = 2;
+  let praise = '🎉 装扮任务完成！+2⭐';
+  const seq = [];
+  if(fromMagic) seq.push('魔法变装！变变变！');
+  seq.push('任务完成啦！公主真漂亮！');
+  if(combo){ stars += 3; seq.push(combo.voice); praise = `🌟 ${combo.name}诞生啦！+5⭐`; }
+  if(d.streak % 3 === 0){ stars += 3; seq.push('连做三个任务，你好厉害！多送你三颗小星星！'); praise += ' 🏆 连做3任务+3⭐'; }
+  addStars(stars);
+  confetti();
+  if(dz3d.ok){ dz3d.jumpT = Math.max(dz3d.jumpT, 0.85); burst3D(); }
+  showPraise(praise);
+  const card = $('#dz-task');
+  if(card){
+    card.classList.add('ok');
+    const ic = card.querySelector('.dz-task-ico');
+    if(ic) ic.innerHTML = '✅';
+    const tx = card.querySelector('.dz-task-txt');
+    if(tx) tx.textContent = '真漂亮！';
+    else card.innerHTML = '✅ 真漂亮！';
+  }
+  const stageWrap = $('#prompt-visual');
+  if(stageWrap){ stageWrap.classList.add('doll-happy'); }
+  playTexts(seq);
+  clearTimeout(state.nextTimer);
+  state.nextTimer = setTimeout(() => {
+    if(stageWrap) stageWrap.classList.remove('doll-happy');
+    newDressTask();
+  }, 2400);
 }
 
 function changeOutfit(part){
@@ -593,13 +1295,72 @@ function changeOutfit(part){
   if(part === 'dress') d.dress = (d.dress + 1) % DRESSES.length;
   if(part === 'hair') d.hair = (d.hair + 1) % HAIRSTYLES.length;
   if(part === 'acc') d.acc = (d.acc + 1) % HAIR_ACCS.length;
+  const nv = d[part];
+  const fresh = collectCheck(part, nv);
   renderDoll();
-  playTexts([pick(DZ_WOW_TEXTS)]);
+  const task = d.task;
+  if(task && task.type === part && nv === task.target){ finishDressTask(false); }
+  else if(task && task.type === part){ playTexts([`再找找，她想要的是「${dzTargetLabel(task)}」哦～`]); }
+  else if(fresh){ playTexts(['哇，又收集到一件新衣服啦！', pick(DZ_WOW_TEXTS)]); }
+  else { playTexts([pick(DZ_WOW_TEXTS)]); }
+}
+
+/* ---- 收集册：穿过/戴过的款式永久点亮 ---- */
+function loadWardrobe(){
+  try{
+    const w = JSON.parse(localStorage.getItem('baby_wardrobe') || 'null');
+    if(w && Array.isArray(w.dress) && Array.isArray(w.hair) && Array.isArray(w.acc)){
+      return {
+        dress: w.dress.filter(i => i >= 0 && i < DRESSES.length),
+        hair:  w.hair.filter(i => i >= 0 && i < HAIRSTYLES.length),
+        acc:   w.acc.filter(i => i >= 0 && i < HAIR_ACCS.length),
+      };
+    }
+  }catch(e){}
+  return { dress:[], hair:[], acc:[] };
+}
+function saveWardrobe(){
+  try{ localStorage.setItem('baby_wardrobe', JSON.stringify(state.dressup.seen)); }catch(e){}
+}
+function collectCheck(part, idx){
+  const s = state.dressup.seen;
+  if(!s[part].includes(idx)){ s[part].push(idx); saveWardrobe(); return true; }
+  return false;
+}
+function renderWardrobe(){
+  const s = state.dressup.seen;
+  const groups = [
+    ['👗 裙子',   DRESSES.map((x, i) => [miniDressSVG(i), x.label, s.dress.includes(i)])],
+    ['💇 发型',   HAIRSTYLES.map((x, i) => [miniHairSVG(i), x, s.hair.includes(i)])],
+    ['👑 头饰',   HAIR_ACCS.map((x, i) => [miniAccSVG(i), x, s.acc.includes(i)])],
+  ];
+  let html = '';
+  groups.forEach(([gn, items]) => {
+    html += `<div class="wd-group"><div class="g-name">${gn}</div><div class="wd-grid">` +
+      items.map(([svg, lb, on]) => `<div class="wd-cell${on ? ' on' : ''}"><span>${on ? '✅' : '🔒'}</span>${svg}<span class="wd-lb">${lb}</span></div>`).join('') +
+      `</div></div>`;
+  });
+  const total = DRESSES.length + HAIRSTYLES.length + HAIR_ACCS.length;
+  const got = s.dress.length + s.hair.length + s.acc.length;
+  $('#wardrobe-body').innerHTML =
+    `<div class="wd-progress">已收集 <b>${got}</b> / ${total}${got >= total ? '　🎉 衣柜集齐啦！' : ''}</div>` + html;
 }
 
 function renderDoll(){
   const stage = $('#doll-stage');
-  if(stage) stage.innerHTML = dollSVG();
+  const d3 = dz3d.ok && dz3d.canvas && dz3d.canvas.isConnected;
+  if(stage && d3){ updateDoll3D(); }
+  else if(stage){ stage.innerHTML = dollSVG(); }
+  const nameEl = $('#dz-name');
+  if(nameEl && state.dressup){
+    const d = state.dressup;
+    nameEl.innerHTML = `<span class="dz-name-ico">${miniDressSVG(d.dress)}</span>` +
+      `<span class="dz-name-ico">${miniHairSVG(d.hair)}</span>` +
+      `<span class="dz-name-ico">${miniAccSVG(d.acc)}</span>` +
+      `<span class="dz-name-txt">${DRESSES[d.dress].label} · ${HAIRSTYLES[d.hair]} · ${HAIR_ACCS[d.acc]}</span>`;
+  }
+  const stageWrap = stage && stage.parentElement;
+  if(stageWrap){ stageWrap.classList.remove('pop-anim'); void stageWrap.offsetWidth; stageWrap.classList.add('pop-anim'); }
 }
 
 function dollSVG(){
@@ -614,26 +1375,39 @@ function dollSVG(){
   if(hair === '长直发') backHair = `<path d="M40 34 Q32 94 46 100 L74 100 Q88 94 80 34 Z" fill="url(#${u}h)"/>`;
   if(hair === '双马尾') backHair = `<ellipse cx="32" cy="62" rx="10" ry="26" fill="url(#${u}h)"/><ellipse cx="88" cy="62" rx="10" ry="26" fill="url(#${u}h)"/>`;
   if(hair === '小卷发') backHair = `<circle cx="37" cy="38" r="11" fill="url(#${u}h)"/><circle cx="83" cy="38" r="11" fill="url(#${u}h)"/><circle cx="33" cy="54" r="9" fill="url(#${u}h)"/><circle cx="87" cy="54" r="9" fill="url(#${u}h)"/>`;
+  if(hair === '公主卷发') backHair = `<circle cx="35" cy="42" r="11" fill="url(#${u}h)"/><circle cx="85" cy="42" r="11" fill="url(#${u}h)"/><circle cx="31" cy="58" r="9.5" fill="url(#${u}h)"/><circle cx="89" cy="58" r="9.5" fill="url(#${u}h)"/><circle cx="34" cy="72" r="8" fill="url(#${u}h)"/><circle cx="86" cy="72" r="8" fill="url(#${u}h)"/>`;
+  if(hair === '俏皮短发') backHair = `<path d="M42 40 Q34 62 46 66 L74 66 Q86 62 78 40 Z" fill="url(#${u}h)"/><circle cx="44" cy="64" r="6" fill="url(#${u}h)"/><circle cx="76" cy="64" r="6" fill="url(#${u}h)"/>`;
   const bun = hair === '丸子头' ? `<circle cx="60" cy="17" r="10" fill="url(#${u}h)"/>` : '';
 
-  let skirt = `<path d="M42 84 L28 116 Q60 125 92 116 L78 84 Z" fill="url(#${u}d)"/>`;
+  /* 加长拖地长裙：外裙大波浪拖地 + 纱质中层 + 白色裙摆花边 + 腰带 */
+  let skirt;
   if(dress.rainbow){
-    skirt = `<path d="M42 84 L28 104 Q60 113 92 104 L78 84 Z" fill="#ff8787"/>
-      <path d="M30 102 Q60 111 90 102 L91 110 Q60 119 29 110 Z" fill="#ffd43b"/>
-      <path d="M29 108 Q60 117 91 108 L92 116 Q60 125 28 116 Z" fill="#74c0fc"/>`;
+    skirt = `<path d="M44 84 Q28 102 20 124 Q13 142 16 154 Q30 162 40 152 Q50 162 60 162 Q70 162 80 152 Q90 162 104 154 Q107 142 100 124 Q92 102 76 84 Z" fill="#ff8787"/>
+      <path d="M24 118 Q34 132 30 146 Q44 154 54 146 Q62 154 78 148 Q70 132 78 118 Q60 124 46 124 Q34 124 24 118 Z" fill="#ffd43b"/>
+      <path d="M28 140 Q42 150 52 142 Q62 150 80 144 Q72 132 76 120 Q62 128 50 128 Q38 128 28 140 Z" fill="#74c0fc"/>`;
+  }else{
+    skirt = `<path d="M44 84 Q28 102 20 124 Q13 142 16 154 Q30 162 40 152 Q50 162 60 162 Q70 162 80 152 Q90 162 104 154 Q107 142 100 124 Q92 102 76 84 Z" fill="url(#${u}d)"/>
+      <path d="M46 86 Q32 104 26 122 Q21 138 24 146 Q34 152 42 145 Q50 153 60 153 Q70 153 78 145 Q86 152 96 146 Q99 138 94 122 Q88 104 74 86 Z" fill="#fff" opacity="0.18"/>
+      <path d="M16 154 Q30 162 40 152 Q50 162 60 162 Q70 162 80 152 Q90 162 104 154" stroke="#fff" stroke-width="4" fill="none" opacity="0.6" stroke-linecap="round"/>
+      <rect x="43" y="83" width="34" height="5" rx="2.5" fill="#ffffff" opacity="0.5"/>`;
   }
   let deco = '';
-  if(dress.star) deco = `<path d="${SPARK}" fill="#fff" opacity="0.85" transform="translate(48,102) scale(0.7)"/><path d="${SPARK}" fill="#fff" opacity="0.85" transform="translate(64,110) scale(0.55)"/><path d="${SPARK}" fill="#fff" opacity="0.85" transform="translate(76,98) scale(0.6)"/>`;
-  if(dress.flower) deco = `<circle cx="48" cy="102" r="4" fill="#fff" opacity="0.9"/><circle cx="64" cy="110" r="4" fill="#ff8787" opacity="0.9"/><circle cx="78" cy="100" r="4" fill="#74c0fc" opacity="0.9"/>`;
-  if(dress.veil) deco = `<path d="M40 88 Q44 110 52 118" stroke="#ffffff" stroke-width="3" opacity="0.4" fill="none"/><path d="M80 88 Q76 110 68 118" stroke="#ffffff" stroke-width="3" opacity="0.4" fill="none"/>`;
+  if(dress.star) deco += `<path d="${SPARK}" fill="#fff" opacity="0.9" transform="translate(46,132) scale(0.8)"/><path d="${SPARK}" fill="#fff" opacity="0.9" transform="translate(60,146) scale(0.55)"/><path d="${SPARK}" fill="#fff" opacity="0.9" transform="translate(78,130) scale(0.65)"/><path d="${SPARK}" fill="#fff" opacity="0.85" transform="translate(88,144) scale(0.5)"/>`;
+  if(dress.sparkle) deco += `<path d="${SPARK}" fill="#fff" opacity="0.95" transform="translate(38,136) scale(0.55)"/><path d="${SPARK}" fill="#fff" opacity="0.95" transform="translate(74,146) scale(0.6)"/><path d="${SPARK}" fill="#fff" opacity="0.9" transform="translate(58,158) scale(0.45)"/><path d="${SPARK}" fill="#fff" opacity="0.9" transform="translate(90,132) scale(0.5)"/>`;
+  if(dress.flower) deco += `<circle cx="44" cy="134" r="4.5" fill="#fff" opacity="0.95"/><circle cx="60" cy="146" r="4.5" fill="#ff8787" opacity="0.95"/><circle cx="78" cy="132" r="4.5" fill="#74c0fc" opacity="0.95"/><circle cx="68" cy="157" r="3.4" fill="#fff" opacity="0.9"/>`;
+  if(dress.veil) deco += `<path d="M40 88 Q44 118 50 136" stroke="#ffffff" stroke-width="3" opacity="0.45" fill="none"/><path d="M80 88 Q76 118 70 136" stroke="#ffffff" stroke-width="3" opacity="0.45" fill="none"/>`;
+  if(dress.dots) deco += `<circle cx="42" cy="136" r="3.4" fill="#fff" opacity="0.95"/><circle cx="58" cy="128" r="3" fill="#fff" opacity="0.95"/><circle cx="76" cy="140" r="3.4" fill="#fff" opacity="0.95"/><circle cx="50" cy="152" r="2.7" fill="#fff" opacity="0.9"/><circle cx="68" cy="146" r="2.7" fill="#fff" opacity="0.9"/><circle cx="86" cy="150" r="2.7" fill="#fff" opacity="0.9"/>`;
+  if(dress.scales) deco += `<ellipse cx="40" cy="128" rx="5" ry="3" fill="#fff" opacity="0.6"/><ellipse cx="54" cy="124" rx="5" ry="3" fill="#fff" opacity="0.6"/><ellipse cx="68" cy="130" rx="5" ry="3" fill="#fff" opacity="0.6"/><ellipse cx="82" cy="136" rx="5" ry="3" fill="#fff" opacity="0.6"/><ellipse cx="46" cy="144" rx="5" ry="3" fill="#fff" opacity="0.55"/><ellipse cx="60" cy="150" rx="5" ry="3" fill="#fff" opacity="0.55"/><ellipse cx="74" cy="146" rx="5" ry="3" fill="#fff" opacity="0.55"/><ellipse cx="86" cy="142" rx="5" ry="3" fill="#fff" opacity="0.55"/>`;
 
   let accSvg = '';
   if(acc === '小皇冠') accSvg = `<path d="M48 18 L51 9 L57 15 L60 6 L63 15 L69 9 L72 18 Z" fill="url(#${u}g)" stroke="#d98f1f" stroke-width="1"/><circle cx="60" cy="13" r="1.6" fill="#ff6b81"/>`;
   if(acc === '蝴蝶结') accSvg = `<path d="M60 22 Q48 14 46 22 Q45 29 58 26 Z" fill="#ff6b81"/><path d="M60 22 Q72 14 74 22 Q75 29 62 26 Z" fill="#ff6b81"/><circle cx="60" cy="23" r="3.4" fill="#e8590c"/>`;
   if(acc === '花朵环') accSvg = `<circle cx="46" cy="18" r="3.5" fill="#ff8fab"/><circle cx="60" cy="14" r="3.5" fill="#f9a8d4"/><circle cx="74" cy="18" r="3.5" fill="#ff8fab"/><circle cx="60" cy="14" r="1.4" fill="#fff"/>`;
   if(acc === '星星夹') accSvg = `<path d="${SPARK}" fill="#ffd43b" transform="translate(76,18) scale(0.9)"/>`;
+  if(acc === '兔耳朵') accSvg = `<ellipse cx="52" cy="7" rx="5.5" ry="13" fill="#fbc6d8" stroke="#e599b8" stroke-width="1.4" transform="rotate(-7 52 7)"/><ellipse cx="68" cy="7" rx="5.5" ry="13" fill="#fbc6d8" stroke="#e599b8" stroke-width="1.4" transform="rotate(7 68 7)"/><ellipse cx="52" cy="7" rx="2.4" ry="8" fill="#fff" opacity="0.6" transform="rotate(-7 52 7)"/><ellipse cx="68" cy="7" rx="2.4" ry="8" fill="#fff" opacity="0.6" transform="rotate(7 68 7)"/>`;
+  if(acc === '珍珠发箍') accSvg = `<path d="M46 23 Q60 15 74 23" stroke="#e8890c" stroke-width="3.2" fill="none" stroke-linecap="round"/><circle cx="50" cy="20" r="1.9" fill="#fff" stroke="#e8890c" stroke-width="0.6"/><circle cx="57" cy="17.6" r="1.9" fill="#fff" stroke="#e8890c" stroke-width="0.6"/><circle cx="63" cy="17.6" r="1.9" fill="#fff" stroke="#e8890c" stroke-width="0.6"/><circle cx="70" cy="20" r="1.9" fill="#fff" stroke="#e8890c" stroke-width="0.6"/>`;
 
-  return `<svg viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg">
+  return `<svg viewBox="0 0 120 182" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="${u}d" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="${dress.c[0]}"/><stop offset="100%" stop-color="${dress.c[1]}"/>
@@ -649,7 +1423,7 @@ function dollSVG(){
       </radialGradient>
       <filter id="${u}b" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.5"/></filter>
     </defs>
-    <ellipse cx="60" cy="144" rx="30" ry="4.5" fill="#000" opacity="0.10" filter="url(#${u}b)"/>
+    <ellipse cx="60" cy="176" rx="34" ry="5" fill="#000" opacity="0.10" filter="url(#${u}b)"/>
     ${backHair}
     ${bun}
     <path d="M42 66 Q34 80 38 92" stroke="url(#${u}s)" stroke-width="5.5" fill="none" stroke-linecap="round"/>
@@ -660,10 +1434,10 @@ function dollSVG(){
     <circle cx="82" cy="70" r="9" fill="url(#${u}d)"/>
     ${skirt}
     ${deco}
-    <rect x="53" y="118" width="5.5" height="16" rx="2.5" fill="url(#${u}s)"/>
-    <rect x="61.5" y="118" width="5.5" height="16" rx="2.5" fill="url(#${u}s)"/>
-    <ellipse cx="54" cy="135" rx="6" ry="3.4" fill="${dress.c[1]}"/>
-    <ellipse cx="66" cy="135" rx="6" ry="3.4" fill="${dress.c[1]}"/>
+    <rect x="53" y="136" width="5.5" height="20" rx="2.5" fill="url(#${u}s)"/>
+    <rect x="61.5" y="136" width="5.5" height="20" rx="2.5" fill="url(#${u}s)"/>
+    <ellipse cx="54" cy="161" rx="6.5" ry="3.6" fill="${dress.c[1]}"/>
+    <ellipse cx="66" cy="161" rx="6.5" ry="3.6" fill="${dress.c[1]}"/>
     <circle cx="60" cy="40" r="17" fill="url(#${u}s)"/>
     <path d="M46 32 Q60 22 74 32 Q70 27 60 26 Q50 27 46 32 Z" fill="url(#${u}h)"/>
     <circle cx="53.5" cy="39" r="3.4" fill="#4a2b4a"/>
@@ -676,6 +1450,480 @@ function dollSVG(){
     <circle cx="60" cy="43" r="1.6" fill="#e8a898"/>
     ${accSvg}
   </svg>`;
+}
+
+/* ================= 公主换装 · 3D 互动版 =================
+   依赖 <head> 中 defer 引入的 three.min.js。WebGL 不可用/加载失败时自动回退 2D SVG。
+   几何构建函数（buildDoll3D 等）不依赖渲染器，可在 Node/jsdom 中验证结构。 */
+let T3 = null;
+const dz3d = { ok:false, running:false, raf:0, t0:0, jumpT:0, rotV:0, camZ:108, lastW:0, lastH:0,
+  drag:null, canvas:null, renderer:null, scene:null, cam:null, doll:null,
+  dressGroup:null, hairGroup:null, accGroup:null, shadow:null, stars:null, particles:null,
+  pPos:null, pVel:null, pLife:null };
+function dzGold(){ const T = T3 || window.THREE; return new T.MeshLambertMaterial({ color: 0xffd97a }); }
+function dzGoldDark(){ const T = T3 || window.THREE; return new T.MeshLambertMaterial({ color: 0xe6a93f }); }
+function dzSkin(){ const T = T3 || window.THREE; return new T.MeshLambertMaterial({ color: 0xffe8cf }); }
+function dzLerpColor(a, b, t){
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const r = Math.round(((pa>>16)&255) + ((((pb>>16)&255)-((pa>>16)&255)) * t));
+  const g = Math.round(((pa>>8)&255) + ((((pb>>8)&255)-((pa>>8)&255)) * t));
+  const bl = Math.round((pa&255) + (((pb&255)-(pa&255)) * t));
+  return (r<<16)|(g<<8)|bl;
+}
+function dzBuildDress(i){
+  const T = T3 || window.THREE;
+  const dress = DRESSES[i];
+  const g = new T.Group();
+  const waveLayers = [];
+  const L = 6;
+  for(let k = 0; k < L; k++){
+    const geo = new T.CylinderGeometry(15.5 + k*3.6, 20.5 + k*4.3, 6.4, 26, 6);
+    const col = dress.rainbow ? [0xff8787, 0xffd43b, 0x74c0fc][k % 3]
+                              : dzLerpColor(dress.c[0], dress.c[1], k / (L-1));
+    const m = new T.Mesh(geo, new T.MeshLambertMaterial({ color: col }));
+    m.position.y = 28.5 - k*5.1;
+    m.userData.wave = 1 - k*0.13;
+    g.add(m); waveLayers.push(m);
+  }
+  // 半透明纱层（更大更薄，摆动更明显）
+  const veil = new T.Mesh(
+    new T.CylinderGeometry(19, 45, 26, 32, 4, true),
+    new T.MeshLambertMaterial({ color: 0xffffff, transparent:true, opacity:0.28, side:T.DoubleSide, depthWrite:false })
+  );
+  veil.position.y = 16; veil.userData.wave = 1.6;
+  g.add(veil); waveLayers.push(veil);
+  // 裙摆白色花边
+  const hem = new T.Mesh(new T.TorusGeometry(40.5, 1.7, 8, 36),
+    new T.MeshLambertMaterial({ color: 0xffffff, transparent:true, opacity:0.85 }));
+  hem.rotation.x = Math.PI / 2; hem.position.y = 2.9;
+  g.add(hem);
+  // 款式装饰
+  const deco = dzBuildDeco(dress);
+  g.add(deco);
+  g.userData.waveLayers = waveLayers;
+  return g;
+}
+function dzBuildDeco(dress){
+  const T = T3 || window.THREE;
+  const g = new T.Group();
+  const white = new T.MeshLambertMaterial({ color: 0xffffff, transparent:true, opacity:0.92 });
+  const add = (mesh, x, y, z) => { mesh.position.set(x, y, z); g.add(mesh); };
+  const spark = (x, y, s) => {
+    const m = new T.Mesh(new T.OctahedronGeometry(2.5), white);
+    m.scale.set(s, s*0.4, s); m.rotation.z = Math.PI/4;
+    add(m, x, y, 12);
+  };
+  if(dress.star){ spark(-14, 18, 1); spark(7, 12, 0.75); spark(17, 6.5, 0.6); }
+  if(dress.sparkle){ spark(-8, 20, 0.9); spark(12, 16, 0.7); spark(-2, 9, 0.55); }
+  if(dress.flower){
+    const pink = new T.MeshLambertMaterial({ color: 0xff8787 });
+    const blue = new T.MeshLambertMaterial({ color: 0x74c0fc });
+    const mk = (x, y, c) => add(new T.Mesh(new T.SphereGeometry(2.3, 10, 8), c), x, y, 12);
+    mk(-13, 17, pink); mk(4, 13, white); mk(15, 8, blue);
+  }
+  if(dress.veil){
+    const mat = new T.MeshLambertMaterial({ color: 0xffffff, transparent:true, opacity:0.5 });
+    for(const s of [1, -1]){
+      const line = new T.Mesh(new T.CylinderGeometry(0.7, 0.7, 16, 6), mat);
+      line.position.set(s*11, 17, 11); line.rotation.z = s * 0.35;
+      g.add(line);
+    }
+  }
+  if(dress.dots){
+    const mk = (x, y, r) => add(new T.Mesh(new T.SphereGeometry(r, 10, 8), white), x, y, 12);
+    mk(-13, 17, 1.5); mk(2, 15, 1.4); mk(15, 9, 1.5); mk(-5, 11, 1.2); mk(9, 19, 1.2);
+  }
+  if(dress.scales){
+    const mat = new T.MeshLambertMaterial({ color: 0xffffff, transparent:true, opacity:0.55 });
+    const mk = (x, y) => {
+      const m = new T.Mesh(new T.SphereGeometry(2.4, 10, 8), mat);
+      m.scale.set(1.5, 0.7, 0.4); add(m, x, y, 12);
+    };
+    mk(-14, 17); mk(-2, 14); mk(10, 17); mk(5, 9); mk(-8, 9); mk(16, 12);
+  }
+  return g;
+}
+function dzBuildHair(i){
+  const T = T3 || window.THREE;
+  const g = new T.Group();
+  const gold = dzGold(), dark = dzGoldDark();
+  const add = (mesh, x, y, z) => { mesh.position.set(x, y, z); g.add(mesh); };
+  if(i === 0){ // 双马尾
+    for(const s of [1, -1]){
+      for(let k = 0; k < 3; k++){
+        const m = new T.Mesh(new T.SphereGeometry([5.6, 4.4, 3.4][k], 14, 10), k === 0 ? dark : gold);
+        add(m, s*13.5, 58.5 - k*6.4, 0.5);
+      }
+      const band = new T.Mesh(new T.TorusGeometry(2.1, 0.8, 6, 14),
+        new T.MeshLambertMaterial({ color: 0xff8fb0 }));
+      band.rotation.x = Math.PI/2; add(band, s*13.5, 59.2, 0.5);
+    }
+  } else if(i === 1){ // 丸子头
+    add(new T.Mesh(new T.SphereGeometry(5.2, 18, 14), gold), 0, 76.5, 0);
+    const band = new T.Mesh(new T.TorusGeometry(1.9, 0.75, 6, 14),
+      new T.MeshLambertMaterial({ color: 0xff8fb0 }));
+    band.rotation.x = Math.PI/2; add(band, 0, 75.2, 0.4);
+  } else if(i === 2){ // 长直发
+    for(let k = 0; k < 5; k++){
+      const m = new T.Mesh(new T.SphereGeometry(4.6, 12, 10), gold);
+      m.scale.set(1, 1.5, 0.55); add(m, 0, 51 - k*6.3, -9.8);
+    }
+    for(const s of [1, -1]){
+      const m = new T.Mesh(new T.SphereGeometry(3, 10, 8), dark);
+      m.scale.set(0.8, 1.7, 0.5); add(m, s*7, 45, -9.4);
+    }
+  } else if(i === 3){ // 小卷发
+    for(const s of [1, -1]) for(let k = 0; k < 4; k++){
+      const m = new T.Mesh(new T.SphereGeometry(3.4, 12, 10), gold);
+      add(m, s*(11.5 + k*1.1), 59.5 - k*4.4, 4 + k*1.2);
+    }
+  } else if(i === 4){ // 公主卷发
+    for(const s of [1, -1]){
+      for(let k = 0; k < 3; k++){
+        const m = new T.Mesh(new T.SphereGeometry([5.4, 4.4, 3.8][k], 14, 10), k === 0 ? dark : gold);
+        add(m, s*(12.5 + k*1.2), 60 - k*4.8, 4.5 + k*1.4);
+      }
+      add(new T.Mesh(new T.SphereGeometry(5.2, 14, 10), gold), s*14.5, 41, 7.5);
+    }
+  } else { // 俏皮短发
+    for(const s of [1, -1]){
+      const tip = new T.Mesh(new T.ConeGeometry(1.7, 5, 8), dark);
+      tip.rotation.z = s * -0.45; add(tip, s*10.5, 64.5, 3.5);
+    }
+    const puff = new T.Mesh(new T.ConeGeometry(2, 4.5, 8), gold);
+    puff.rotation.z = -0.35; puff.rotation.x = -0.3; add(puff, -2.5, 70.5, 7.5);
+  }
+  return g;
+}
+function dzBuildAcc(i){
+  const T = T3 || window.THREE;
+  const g = new T.Group();
+  if(i === 0){ // 小皇冠
+    const ring = new T.Mesh(new T.TorusGeometry(4.6, 0.9, 8, 20),
+      new T.MeshLambertMaterial({ color: 0xffd75e }));
+    ring.rotation.x = Math.PI/2; ring.position.y = 73.2; g.add(ring);
+    for(let k = 0; k < 5; k++){
+      const a = k/5*Math.PI*2;
+      const t = new T.Mesh(new T.ConeGeometry(1.5, 4.2, 4),
+        new T.MeshLambertMaterial({ color: 0xffe08a }));
+      t.position.set(Math.sin(a)*4.6, 75.4, Math.cos(a)*4.6);
+      g.add(t);
+    }
+    add3d(g, new T.Mesh(new T.SphereGeometry(0.9, 8, 6), new T.MeshLambertMaterial({ color: 0xff6b81 })), 0, 74.2, 4.6);
+  } else if(i === 1){ // 蝴蝶结
+    for(const s of [1, -1]){
+      const b = new T.Mesh(new T.SphereGeometry(3.4, 12, 8),
+        new T.MeshLambertMaterial({ color: 0xff9ecf }));
+      b.scale.set(1.4, 0.9, 0.5); b.position.set(s*4.2, 72.5, 5.5); g.add(b);
+    }
+    const c = new T.Mesh(new T.SphereGeometry(1.7, 10, 8),
+      new T.MeshLambertMaterial({ color: 0xe8590c }));
+    c.position.set(0, 72.5, 6.5); g.add(c);
+  } else if(i === 2){ // 花朵环
+    const ring = new T.Mesh(new T.TorusGeometry(5.2, 0.8, 8, 24),
+      new T.MeshLambertMaterial({ color: 0xffc9de }));
+    ring.rotation.x = Math.PI/2; ring.position.y = 73.4; g.add(ring);
+    for(let k = 0; k < 6; k++){
+      const a = k/6*Math.PI*2;
+      const fl = new T.Mesh(new T.SphereGeometry(1.7, 10, 8),
+        new T.MeshLambertMaterial({ color: k % 2 ? 0xf9a8d4 : 0xffffff }));
+      fl.position.set(Math.sin(a)*5.2, 74.3, Math.cos(a)*5.2);
+      g.add(fl);
+    }
+  } else if(i === 3){ // 星星夹
+    const st = new T.Mesh(new T.OctahedronGeometry(2.6),
+      new T.MeshLambertMaterial({ color: 0xffd43b }));
+    st.scale.set(1, 0.35, 1); st.rotation.z = 0.5; st.position.set(9.5, 72.5, 6.5);
+    g.add(st);
+  } else if(i === 4){ // 兔耳朵
+    for(const s of [1, -1]){
+      const e = new T.Mesh(new T.SphereGeometry(3.2, 12, 10),
+        new T.MeshLambertMaterial({ color: 0xfbc6d8 }));
+      e.scale.set(0.8, 1.9, 0.5); e.rotation.z = s*0.18; e.position.set(s*5.5, 79, 1.5);
+      g.add(e);
+    }
+  } else if(i === 5){ // 珍珠发箍
+    const ring = new T.Mesh(new T.TorusGeometry(6.4, 0.55, 8, 28),
+      new T.MeshLambertMaterial({ color: 0xe8890c }));
+    ring.rotation.x = Math.PI*0.82; ring.position.y = 70.5; g.add(ring);
+    for(let k = 0; k < 8; k++){
+      const a = k/8*Math.PI*2;
+      const pearl = new T.Mesh(new T.SphereGeometry(1.0, 8, 8),
+        new T.MeshLambertMaterial({ color: 0xffffff }));
+      pearl.position.set(Math.sin(a)*6.4, 71.9, Math.cos(a)*6.4);
+      g.add(pearl);
+    }
+  }
+  return g;
+}
+function add3d(g, m, x, y, z){ m.position.set(x, y, z); g.add(m); }
+function dzBuildBody(){
+  const T = T3 || window.THREE;
+  const g = new T.Group();
+  const skin = dzSkin();
+  const torso = new T.Mesh(new T.SphereGeometry(7.4, 18, 14), skin);
+  torso.scale.set(1, 1.18, 0.85); torso.position.y = 39.5; g.add(torso);
+  const head = new T.Mesh(new T.SphereGeometry(10.8, 24, 20), skin);
+  head.position.y = 61; g.add(head);
+  for(const s of [1, -1]){
+    const eye = new T.Mesh(new T.SphereGeometry(2.3, 12, 10),
+      new T.MeshLambertMaterial({ color: 0x4a2b4a }));
+    eye.position.set(s*4.2, 63.4, 9.4); g.add(eye);
+    const hi = new T.Mesh(new T.SphereGeometry(0.95, 8, 8),
+      new T.MeshLambertMaterial({ color: 0xffffff }));
+    hi.position.set(s*4.9, 64.3, 10.9); g.add(hi);
+    const bl = new T.Mesh(new T.SphereGeometry(2.4, 10, 8),
+      new T.MeshLambertMaterial({ color: 0xff8fb0, transparent:true, opacity:0.55 }));
+    bl.position.set(s*7.6, 59.2, 8.4); g.add(bl);
+    const arm = new T.Group();
+    const up = new T.Mesh(new T.CylinderGeometry(1.9, 1.6, 8.5, 8), skin);
+    up.position.y = -4.4; arm.add(up);
+    const hand = new T.Mesh(new T.SphereGeometry(2.3, 10, 8), skin);
+    hand.position.y = -9; arm.add(hand);
+    arm.position.set(s*9.6, 47.5, 0); arm.rotation.z = s*0.15;
+    g.add(arm);
+  }
+  const mouth = new T.Mesh(new T.TorusGeometry(2.2, 0.55, 8, 18, Math.PI),
+    new T.MeshLambertMaterial({ color: 0xd9806e }));
+  mouth.rotation.x = Math.PI/2; mouth.rotation.y = 0; mouth.position.set(0, 57.2, 10.2);
+  g.add(mouth);
+  return g;
+}
+function buildDoll3D(){
+  const T = T3 || window.THREE;
+  const doll = new T.Group();
+  doll.add(dzBuildBody());
+  const dressGroup = new T.Group();
+  for(let i = 0; i < DRESSES.length; i++){
+    const g = dzBuildDress(i); g.visible = (i === 0); dressGroup.add(g);
+  }
+  doll.add(dressGroup);
+  const hairGroup = new T.Group();
+  // 后脑发帽 + 刘海（所有发型常显）
+  const cap = new T.Mesh(new T.SphereGeometry(11.6, 22, 14, Math.PI*0.45, Math.PI*1.1, 0, Math.PI*0.6),
+    dzGold());
+  cap.scale.y = 0.92; cap.position.y = 61; hairGroup.add(cap);
+  for(const x of [-4.5, 0, 4.5]){
+    const b = new T.Mesh(new T.SphereGeometry(3, 12, 8), dzGold());
+    b.scale.set(1, 0.55, 0.45); b.position.set(x, 68.2, 8.4);
+    hairGroup.add(b);
+  }
+  for(let i = 0; i < HAIRSTYLES.length; i++){
+    const g = dzBuildHair(i); g.visible = (i === 0); hairGroup.add(g);
+  }
+  doll.add(hairGroup);
+  const accGroup = new T.Group();
+  for(let i = 0; i < HAIR_ACCS.length; i++){
+    const g = dzBuildAcc(i); g.visible = (i === 0); accGroup.add(g);
+  }
+  doll.add(accGroup);
+  doll.userData = { dressGroup, hairGroup, accGroup };
+  return doll;
+}
+function updateDoll3D(){
+  const d = state.dressup;
+  if(!dz3d.ok || !d) return;
+  dz3d.dressGroup.children.forEach((g, i) => { g.visible = (i === d.dress); });
+  // hairGroup: [0]=发帽 [1..3]=刘海(常显) [4..9]=6 款发型
+  dz3d.hairGroup.children.forEach((g, i) => { if(i >= 4) g.visible = (i - 4 === d.hair); });
+  dz3d.accGroup.children.forEach((g, i) => { g.visible = (i === d.acc); });
+}
+function initDoll3D(){
+  if(dz3d.ok) return true;
+  if(!window.THREE) return false;
+  try{
+    T3 = window.THREE;
+    const probe = document.createElement('canvas');
+    if(!(probe.getContext('webgl') || probe.getContext('experimental-webgl'))) return false;
+    const renderer = new T3.WebGLRenderer({ alpha:true, antialias:true });
+    renderer.setClearColor(0x000000, 0);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const scene = new T3.Scene();
+    const cam = new T3.PerspectiveCamera(38, 1, 1, 500);
+    cam.position.set(0, 52, 108);
+    scene.add(new T3.AmbientLight(0xffffff, 0.55));
+    const key = new T3.DirectionalLight(0xffffff, 0.85);
+    key.position.set(45, 90, 55); scene.add(key);
+    scene.add(new T3.HemisphereLight(0xffe9f7, 0xcfd8ff, 0.35));
+    const plat = new T3.Mesh(new T3.CylinderGeometry(44, 46, 3.6, 40),
+      new T3.MeshLambertMaterial({ color: 0xf1e6ff }));
+    plat.position.y = -1.6; scene.add(plat);
+    const shadow = new T3.Mesh(new T3.CircleGeometry(30, 36),
+      new T3.MeshBasicMaterial({ color: 0x5a4a8a, transparent:true, opacity:0.16 }));
+    shadow.rotation.x = -Math.PI/2; shadow.position.y = 0.08; scene.add(shadow);
+    const doll = buildDoll3D();
+    scene.add(doll);
+    // 漂浮小星星
+    const n = 110, pos = new Float32Array(n*3);
+    for(let i = 0; i < n; i++){
+      const a = Math.random()*Math.PI*2, e = Math.random()*Math.PI*0.9, r = 55 + Math.random()*45;
+      pos[i*3] = Math.cos(a)*Math.cos(e)*r;
+      pos[i*3+1] = 15 + Math.abs(Math.sin(e))*r*0.8;
+      pos[i*3+2] = Math.sin(a)*Math.cos(e)*r;
+    }
+    const starGeo = new T3.BufferGeometry();
+    starGeo.setAttribute('position', new T3.BufferAttribute(pos, 3));
+    const stars = new T3.Points(starGeo, new T3.PointsMaterial({ color: 0xfff3c4, size: 1.1,
+      transparent:true, opacity:0.85, sizeAttenuation:true }));
+    scene.add(stars);
+    // 撒花粒子（隐藏，burst 时喷出）
+    const PN = 240;
+    const pPos = new Float32Array(PN*3), pCol = new Float32Array(PN*3);
+    const pal = [0xff6b8a, 0xffd43b, 0x74c0fc, 0x51cf66, 0xfff3c4, 0xcc99ff];
+    for(let i = 0; i < PN; i++){
+      pPos[i*3] = 0; pPos[i*3+1] = -100; pPos[i*3+2] = 0;
+      const c = new T3.Color(pal[i % pal.length]);
+      pCol[i*3] = c.r; pCol[i*3+1] = c.g; pCol[i*3+2] = c.b;
+    }
+    const pGeo = new T3.BufferGeometry();
+    pGeo.setAttribute('position', new T3.BufferAttribute(pPos, 3));
+    pGeo.setAttribute('color', new T3.BufferAttribute(pCol, 3));
+    const particles = new T3.Points(pGeo, new T3.PointsMaterial({ size: 2.1, vertexColors:true,
+      transparent:true, opacity:0, depthWrite:false }));
+    scene.add(particles);
+    dz3d.renderer = renderer; dz3d.scene = scene; dz3d.cam = cam; dz3d.doll = doll;
+    dz3d.dressGroup = doll.userData.dressGroup; dz3d.hairGroup = doll.userData.hairGroup;
+    dz3d.accGroup = doll.userData.accGroup; dz3d.shadow = shadow; dz3d.stars = stars;
+    dz3d.particles = particles; dz3d.pPos = pPos; dz3d.pVel = new Float32Array(PN*3);
+    dz3d.pLife = new Float32Array(PN);
+    dz3d.ok = true;
+    return true;
+  }catch(e){
+    console.error('3D init failed:', e);
+    dz3d.ok = false;
+    return false;
+  }
+}
+function dzWaveMesh(m, t){
+  const pos = m.geometry.attributes.position;
+  if(!pos) return;
+  const arr = pos.array, n = pos.count;
+  const h = (m.geometry.parameters && m.geometry.parameters.height) || 6;
+  const amp = 0.75 * (m.userData.wave || 1);
+  for(let i = 0; i < n; i++){
+    const x = arr[i*3], y = arr[i*3+1], z = arr[i*3+2];
+    const r = Math.sqrt(x*x + z*z);
+    if(r < 0.05) continue;
+    const th = Math.atan2(z, x);
+    arr[i*3+1] = y + Math.sin(th*3 + t*2.6) * amp * (y/h + 0.5);
+  }
+  pos.needsUpdate = true;
+}
+function dzUpdateParticles(dt){
+  const pos = dz3d.pPos, vel = dz3d.pVel, life = dz3d.pLife;
+  let maxL = 0;
+  for(let i = 0; i < life.length; i++){
+    if(life[i] <= 0) continue;
+    life[i] -= dt / 2.4;
+    vel[i*3+1] -= 60*dt;
+    pos[i*3] += vel[i*3]*dt; pos[i*3+1] += vel[i*3+1]*dt; pos[i*3+2] += vel[i*3+2]*dt;
+    if(pos[i*3+1] < 3){ pos[i*3+1] = 3; vel[i*3] *= 0.5; vel[i*3+2] *= 0.5; vel[i*3+1] *= -0.35; }
+    if(life[i] < 0) life[i] = 0;
+    if(life[i] > maxL) maxL = life[i];
+  }
+  dz3d.particles.geometry.attributes.position.needsUpdate = true;
+  dz3d.particles.material.opacity = maxL;
+}
+function burst3D(){
+  if(!dz3d.ok) return;
+  const pos = dz3d.pPos, vel = dz3d.pVel, life = dz3d.pLife;
+  for(let i = 0; i < life.length; i++){
+    const a = Math.random()*Math.PI*2, sp = 9 + Math.random()*26, up = 15 + Math.random()*28;
+    vel[i*3] = Math.cos(a)*sp; vel[i*3+1] = up; vel[i*3+2] = Math.sin(a)*sp;
+    pos[i*3] = (Math.random()-0.5)*7; pos[i*3+1] = 80; pos[i*3+2] = (Math.random()-0.5)*7;
+    life[i] = 1;
+  }
+}
+function dzLoop(ts){
+  dz3d.raf = 0;
+  if(!dz3d.running || !dz3d.canvas || !dz3d.canvas.isConnected) return;
+  if(!$('#game') || $('#game').classList.contains('hidden')){ dz3d.running = false; return; }
+  const t = ts * 0.001;
+  const dt = Math.min(0.05, t - (dz3d.t0 || t));
+  dz3d.t0 = t;
+  const doll = dz3d.doll;
+  for(const dg of dz3d.dressGroup.children){
+    if(!dg.visible) continue;
+    for(const m of (dg.userData.waveLayers || [])) dzWaveMesh(m, t);
+  }
+  const breath = 1 + Math.sin(t*2)*0.015;
+  doll.scale.set(breath, breath, breath);
+  if(dz3d.jumpT > 0){
+    dz3d.jumpT -= dt*1.1;
+    const j = Math.max(0, dz3d.jumpT);
+    doll.position.y = Math.abs(Math.sin(j*Math.PI*3)) * 13 * j;
+    dz3d.shadow.scale.set(Math.max(0.3, 1 - j*0.28), Math.max(0.3, 1 - j*0.28), 1);
+    dz3d.shadow.material.opacity = Math.max(0.04, 0.16 - j*0.07);
+  }
+  dz3d.rotV *= 0.96;
+  doll.rotation.y += dz3d.rotV * dt * 8;
+  dz3d.cam.position.z += (dz3d.camZ - dz3d.cam.position.z) * 0.08;
+  dz3d.cam.position.y = 52 + Math.sin(t*0.6)*1.2;
+  dz3d.cam.lookAt(0, 34, 0);
+  dz3d.stars.rotation.y = t*0.05;
+  dzUpdateParticles(dt);
+  const w = dz3d.canvas.clientWidth, h = dz3d.canvas.clientHeight;
+  if(w > 0 && h > 0 && (w !== dz3d.lastW || h !== dz3d.lastH)){
+    dz3d.lastW = w; dz3d.lastH = h;
+    dz3d.renderer.setSize(w, h, false);
+    dz3d.cam.aspect = w / h; dz3d.cam.updateProjectionMatrix();
+  }
+  dz3d.renderer.render(dz3d.scene, dz3d.cam);
+  dz3d.raf = requestAnimationFrame(dzLoop);
+}
+function dzBindEvents(){
+  const cv = dz3d.canvas;
+  if(!cv || cv.__dz) return;
+  cv.__dz = true;
+  const raycaster = new T3.Raycaster();
+  const ndc = new T3.Vector2();
+  cv.addEventListener('pointerdown', e => {
+    dz3d.drag = { x: e.clientX, y: e.clientY, t: Date.now(), moved:false };
+    if(cv.setPointerCapture) cv.setPointerCapture(e.pointerId);
+  });
+  cv.addEventListener('pointermove', e => {
+    if(!dz3d.drag) return;
+    const dx = e.clientX - dz3d.drag.x;
+    if(Math.abs(dx) > 6) dz3d.drag.moved = true;
+    dz3d.doll.rotation.y += dx * 0.01;
+    dz3d.rotV = dx * 0.012;
+    dz3d.drag.x = e.clientX; dz3d.drag.y = e.clientY;
+  });
+  const up = e => {
+    if(!dz3d.drag) return;
+    const moved = dz3d.drag.moved, dt = Date.now() - dz3d.drag.t;
+    dz3d.drag = null;
+    if(moved || dt > 400) return;
+    const rect = cv.getBoundingClientRect();
+    ndc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    ndc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(ndc, dz3d.cam);
+    if(raycaster.intersectObject(dz3d.doll, true).length){
+      dz3d.jumpT = Math.max(dz3d.jumpT, 0.65);
+      playTexts([pick(DZ_WOW_TEXTS)]);
+    }
+  };
+  cv.addEventListener('pointerup', up);
+  cv.addEventListener('pointercancel', () => { dz3d.drag = null; });
+  cv.addEventListener('wheel', e => {
+    e.preventDefault();
+    dz3d.camZ = Math.max(84, Math.min(150, dz3d.camZ + e.deltaY * 0.06));
+  }, { passive:false });
+}
+function dzStart3D(){
+  if(!initDoll3D()) return false;
+  const stageEl = $('#doll-stage');
+  if(!stageEl) return false;
+  const cv = dz3d.renderer.domElement;
+  if(!cv.isConnected){
+    stageEl.appendChild(cv);
+    dz3d.canvas = cv;
+    dz3d.lastW = 0; dz3d.lastH = 0;
+    dzBindEvents();
+  }
+  dz3d.running = true;
+  if(!dz3d.raf) dz3d.raf = requestAnimationFrame(dzLoop);
+  return true;
 }
 
 const HANZI = [
@@ -693,6 +1941,17 @@ const HANZI = [
   {ch:'小', py:'xiǎo', emoji:'🐜', phrase:'很小'},
   {ch:'鸟', py:'niǎo', emoji:'🐦', phrase:'小鸟'},
   {ch:'鱼', py:'yú',   emoji:'🐟', phrase:'小鱼'},
+  {ch:'人', py:'rén',  emoji:'👨', phrase:'大人'},
+  {ch:'口', py:'kǒu',  emoji:'👄', phrase:'嘴巴'},
+  {ch:'手', py:'shǒu', emoji:'✋', phrase:'小手'},
+  {ch:'足', py:'zú',   emoji:'🦶', phrase:'小脚'},
+  {ch:'目', py:'mù',   emoji:'👀', phrase:'眼睛'},
+  {ch:'耳', py:'ěr',   emoji:'👂', phrase:'耳朵'},
+  {ch:'心', py:'xīn',  emoji:'❤️', phrase:'爱心'},
+  {ch:'天', py:'tiān', emoji:'🌤️', phrase:'天空'},
+  {ch:'地', py:'dì',   emoji:'🌍', phrase:'大地'},
+  {ch:'上', py:'shàng', emoji:'⬆️', phrase:'上面'},
+  {ch:'下', py:'xià',  emoji:'⬇️', phrase:'下面'},
 ];
 
 const COLORS = [
@@ -727,8 +1986,9 @@ const TRY_AGAIN = ['再试一次哦～','差一点点啦～','没关系，再想
 /* ================= 出题器 ================= */
 function genCount(){
   const [e, name] = pick(COUNT_EMOJIS);
-  const n = 1 + Math.floor(Math.random()*10);
-  const opts = numberOptions(n, 3, 10);
+  const lv = state.level.count === 2 ? 2 : 1;
+  const n = lv === 2 ? 6 + Math.floor(Math.random()*5) : 1 + Math.floor(Math.random()*5);
+  const opts = lv === 2 ? numberOptions(n, 3, 10, 1) : numberOptions(n, 3, 5, 1);
   const items = Array.from({length:n}, (_,i) =>
     `<span class="count-item" style="animation-delay:${(i*0.12).toFixed(2)}s">${e}</span>`).join('');
   return {
@@ -742,8 +2002,14 @@ function genCount(){
 }
 
 function genHanzi(){
-  const three = sample(HANZI, 3);
-  const t = pick(three);
+  // 错题本复习：答错过的字优先再考（60% 概率从错题本里出题）
+  let t = pick(HANZI);
+  if(state.wrongHanzi.length && Math.random() < 0.6){
+    const w = HANZI.filter(h => state.wrongHanzi.includes(h.ch));
+    if(w.length) t = pick(w);
+  }
+  const others = shuffle(HANZI.filter(h => h.ch !== t.ch)).slice(0, 2);
+  const three = shuffle([t, ...others]);
   return {
     promptHTML: `<div class="hanzi-card"><div class="pinyin">${t.py}</div><div class="hanzi">${t.ch}</div></div>`,
     promptSpeak: [`${t.ch}。${t.phrase}的${t.ch}。你看，哪个是${t.phrase}呀？`],
@@ -803,10 +2069,11 @@ function genAnimal(){
 }
 
 function genAdd(){
-  const a = 1 + Math.floor(Math.random()*4);        // 1..4
-  const b = 1 + Math.floor(Math.random()*(5-a));    // 1..(5-a)，总和不超过5
+  const cap = state.level.add === 2 ? 10 : 5;
+  const a = 1 + Math.floor(Math.random()*(cap-1));
+  const b = 1 + Math.floor(Math.random()*(cap-a));
   const sum = a + b;
-  const opts = numberOptions(sum, 3, 6);
+  const opts = numberOptions(sum, 3, cap, 1);
   const dots = (e,n) => Array.from({length:n},()=>`<span class="a-item">${e}</span>`).join('');
   return {
     promptHTML: `<div class="add-row"><div class="add-group">${dots('🍎',a)}</div><div class="add-op">＋</div><div class="add-group">${dots('🍓',b)}</div><div class="add-op">＝</div><div class="add-op">❓</div></div>`,
@@ -837,9 +2104,8 @@ function genABC(){
 }
 
 const MODULES = [
-  {id:'cartoon',  name:'动画明星', icon:'🐷', bg:'#ffe3f0', gen:genCartoon},
-  {id:'princess', name:'公主梦幻', icon:'🦄', bg:'#ffe9f7', gen:genPrincess},
-  {id:'dressup',  name:'公主换装', icon:'👗', bg:'#fff0f9', special:'dressup'},
+  {id:'find',  name:'角色乐园', icon:'🎠', bg:'#ffe3f0', gen:genFind},
+  {id:'dressup', name:'公主换装', icon:'👗', bg:'#fff0f9', special:'dressup'},
   {id:'count',  name:'数一数',   icon:'🔢', bg:'#ffe1ea', gen:genCount},
   {id:'hanzi',  name:'认汉字',   icon:'📖', bg:'#fff0d9', gen:genHanzi},
   {id:'shape',  name:'颜色形状', icon:'🎨', bg:'#fff9d1', gen:genShapeColor},
@@ -848,6 +2114,19 @@ const MODULES = [
   {id:'abc',    name:'英文字母', icon:'🔤', bg:'#eadcff', gen:genABC},
 ];
 
+/* 每个模块对应的语音分片（角色乐园混合出题，两个包都预加载）。
+   按模块预加载而不是等出题文本反查，保证进模块第一句就是真人配音。 */
+const MODULE_PARTS = {
+  find: ['cartoon', 'princess'],
+  dressup: ['dressup'],
+  count: ['count'],
+  hanzi: ['hanzi'],
+  shape: ['shape'],
+  animal: ['animal'],
+  add: ['add'],
+  abc: ['abc'],
+};
+
 /* ================= 游戏流程 ================= */
 const state = {
   moduleId: null,
@@ -855,13 +2134,50 @@ const state = {
   stars: 0,
   q: null,
   locked: false,
+  streak: 0,
+  level: { count: 1, add: 1 },
+  wrongHanzi: [],
+  today: { date: '', q: 0, ok: 0, stars: 0, mods: {} },
 };
-try { state.stars = parseInt(localStorage.getItem('baby_stars') || '0', 10) || 0; } catch(e){}
+function todayKey(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+try {
+  state.stars = parseInt(localStorage.getItem('baby_stars') || '0', 10) || 0;
+  const lv = JSON.parse(localStorage.getItem('baby_levels') || '{}');
+  if(lv && typeof lv === 'object'){
+    state.level.count = lv.count === 2 ? 2 : 1;
+    state.level.add  = lv.add  === 2 ? 2 : 1;
+  }
+  const wh = JSON.parse(localStorage.getItem('baby_wronghanzi') || '[]');
+  if(Array.isArray(wh)) state.wrongHanzi = wh.filter(x => typeof x === 'string').slice(0, 15);
+  const td = JSON.parse(localStorage.getItem('baby_today') || 'null');
+  if(td && td.date === todayKey()) state.today = Object.assign({date:'', q:0, ok:0, stars:0, mods:{}}, td);
+} catch(e){}
+
+function saveLevels(){
+  try { localStorage.setItem('baby_levels', JSON.stringify(state.level)); } catch(e){}
+}
+function saveWrongHanzi(){
+  try { localStorage.setItem('baby_wronghanzi', JSON.stringify(state.wrongHanzi)); } catch(e){}
+}
+function saveToday(){
+  try { localStorage.setItem('baby_today', JSON.stringify(state.today)); } catch(e){}
+}
 
 function addStars(n){
   state.stars += n;
   try { localStorage.setItem('baby_stars', String(state.stars)); } catch(e){}
   updateStars();
+  if(state.moduleId){
+    const t = state.today;
+    if(t.date !== todayKey()){ t.date = todayKey(); t.q = 0; t.ok = 0; t.stars = 0; t.mods = {}; }
+    t.stars += n;
+    t.mods[state.moduleId] = (t.mods[state.moduleId] || 0) + n;
+    saveToday();
+  }
+  updateToday();
 }
 function updateStars(){
   ['#total-stars', '#game-stars'].forEach(sel => {
@@ -924,11 +2240,33 @@ function choose(btn, op){
     state.locked = true;
     btn.classList.add('correct');
     state.sessionCorrect++;
+    state.streak++;
     const bonus = state.sessionCorrect % 5 === 0;
     addStars(bonus ? 3 : 1);
     confetti();
+    // 今日统计
+    const t = state.today;
+    if(t.date !== todayKey()){ t.date = todayKey(); t.q = 0; t.ok = 0; t.stars = 0; t.mods = {}; }
+    t.q++; t.ok++;
+    saveToday();
+    updateToday();
+    // 认汉字：答对了就从错题本移除
+    if(state.moduleId === 'hanzi' && q.answerValue){
+      const i = state.wrongHanzi.indexOf(String(q.answerValue));
+      if(i >= 0){ state.wrongHanzi.splice(i, 1); saveWrongHanzi(); }
+    }
+    // 自适应难度：数一数 / 加法连对 3 题升一级
+    let levelUpText = null;
+    if(state.moduleId === 'count' || state.moduleId === 'add'){
+      const lvKey = state.moduleId === 'count' ? 'count' : 'add';
+      if(state.level[lvKey] === 1 && state.streak >= 3){
+        state.level[lvKey] = 2;
+        saveLevels();
+        levelUpText = '✨ 难度升级，更难的题目来咯！';
+      }
+    }
     const praise = pick(PRAISE);
-    showPraise(bonus ? '🎉 连对5题！+3⭐' : praise);
+    showPraise(levelUpText || (bonus ? '🎉 连对5题！奖励+2⭐' : praise));
     if(q.correctHTML) $('#prompt-visual').innerHTML = q.correctHTML;
     const seq = [bonus ? '连对五题，太厉害啦！多送你两颗小星星！' : praise];
     if(q.correctSpeak) seq.push(...(Array.isArray(q.correctSpeak) ? q.correctSpeak : [q.correctSpeak]));
@@ -938,6 +2276,21 @@ function choose(btn, op){
   }else{
     btn.classList.add('wrong');
     btn.disabled = true;
+    state.streak = 0;
+    const t = state.today;
+    if(t.date !== todayKey()){ t.date = todayKey(); t.q = 0; t.ok = 0; t.stars = 0; t.mods = {}; }
+    t.q++;
+    saveToday();
+    updateToday();
+    // 认汉字：答错了把正确字记进错题本
+    if(state.moduleId === 'hanzi' && q.answerValue){
+      const c = String(q.answerValue);
+      if(!state.wrongHanzi.includes(c)){
+        state.wrongHanzi.push(c);
+        if(state.wrongHanzi.length > 15) state.wrongHanzi.shift();
+        saveWrongHanzi();
+      }
+    }
     const wrongArr = op.wrongSpeak ? (Array.isArray(op.wrongSpeak) ? op.wrongSpeak : [op.wrongSpeak]) : [];
     playTexts(wrongArr.concat([pick(TRY_AGAIN)]));
   }
@@ -959,9 +2312,9 @@ function buildHome(){
   $('#welcome .mascots').innerHTML = `
     <span class="m" style="animation-delay:0s">${pigSVG(['#ff6b81','#d92643'], 60)}</span>
     <span class="m" style="animation-delay:.15s">${pigSVG(['#5cb3ff','#2b7fd4'], 50, {dino:true})}</span>
-    <span class="m" style="animation-delay:.3s">${pupSVG({fur:['#c99a6a','#a3754a'], ear:'#7c5333', uni:['#4d94ff','#1f5fc4'], muzz:'#e8c8a0'}, 50)}</span>
-    <span class="m" style="animation-delay:.45s">${pupSVG({fur:['#ffffff','#ececec'], ear:'#f4f4f4', uni:['#ff6b6b','#d33030'], muzz:'#fdf4f4', spots:true}, 50)}</span>
-    <span class="m" style="animation-delay:.6s">${pupSVG({fur:['#f0c290','#d9a066'], ear:'#b9834f', uni:['#ff9ec6','#f06a9b'], muzz:'#fbe0c3'}, 50)}</span>`;
+    <span class="m" style="animation-delay:.3s">${pupSVG({fur:['#c99a6a','#a3754a'], ear:'#7c5333', uni:['#4d94ff','#1f5fc4'], muzz:'#e8c8a0', bg:['#dbeeff','#b9dcff']}, 50)}</span>
+    <span class="m" style="animation-delay:.45s">${pupSVG({fur:['#ffffff','#ececec'], ear:'#f4f4f4', uni:['#ff6b6b','#d33030'], muzz:'#fdf4f4', spots:true, bg:['#ffe9e0','#ffd0c2']}, 50)}</span>
+    <span class="m" style="animation-delay:.6s">${pupSVG({fur:['#f0c290','#d9a066'], ear:'#b9834f', uni:['#ff9ec6','#f06a9b'], muzz:'#fbe0c3', bg:['#ffe4f2','#ffc2e0']}, 50)}</span>`;
 }
 
 $('#welcome').onclick = () => {
@@ -971,6 +2324,7 @@ $('#welcome').onclick = () => {
 function startModule(id){
   state.moduleId = id;
   state.sessionCorrect = 0;
+  state.streak = 0;
   state.locked = true;                       // 防止旧题目的定时器/点击串场
   state.mem = null;
   clearTimeout(state.nextTimer);
@@ -979,8 +2333,12 @@ function startModule(id){
   $('#home').classList.add('hidden');
   $('#game').classList.remove('hidden');
   updateStars();
-  if(m.special === 'dressup'){ startDressup(); return; }
-  showQuestion();
+  // 预加载本模块语音分片（角色乐园=卡通+公主两个包），加载完再出题，保证第一句就是真声
+  Promise.all((MODULE_PARTS[id] || []).map(loadAudioPart)).then(() => {
+    if(state.moduleId !== id) return;        // 等待期间用户已离开
+    if(m.special === 'dressup'){ startDressup(); return; }
+    showQuestion();
+  });
 }
 
 $('#back-btn').onclick = () => {
@@ -995,7 +2353,7 @@ $('#back-btn').onclick = () => {
 
 $('#repeat-btn').onclick = () => {
   if(state.q && !state.locked) playTexts(state.q.promptSpeak);
-  else if(state.moduleId === 'dressup') playTexts(['公主换装！给小公主穿上最漂亮的衣服吧！']);
+  else if(state.moduleId === 'dressup') playTexts(dz2LastSay.length ? dz2LastSay : ['欢迎来到公主换装间，快来选漂亮的衣服吧！']);
 };
 
 const muteBtn = $('#mute-btn');
@@ -1009,15 +2367,67 @@ muteBtn.onclick = () => {
 renderMute();
 
 $('#fs-btn').onclick = () => {
+  const d = document, el = d.documentElement;
+  const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+  const xfs = d.exitFullscreen || d.webkitExitFullscreen || d.msExitFullscreen;
   try{
-    if(document.fullscreenElement) document.exitFullscreen();
-    else document.documentElement.requestFullscreen();
+    if(d.fullscreenElement || d.webkitFullscreenElement || d.msFullscreenElement){ if(xfs) xfs.call(d); }
+    else if(rfs){ rfs.call(el); }
   }catch(e){}
 };
+// iPhone 上 Safari 不支持全屏 API，按钮隐藏
+(function(){
+  const el = document.documentElement;
+  if(!(el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen)){
+    const b = $('#fs-btn'); if(b) b.style.display = 'none';
+  }
+})();
+
+/* ================= 今日统计 ================= */
+const MODNAME = {};
+MODULES.forEach(m => MODNAME[m.id] = m.name);
+
+function updateToday(){
+  const t = state.today;
+  if(t.date !== todayKey()){ t.date = todayKey(); t.q = 0; t.ok = 0; t.stars = 0; t.mods = {}; }
+  const okEl = $('#today-ok'), stEl = $('#today-stars');
+  if(okEl) okEl.textContent = t.ok;
+  if(stEl) stEl.textContent = t.stars;
+}
+function renderStats(){
+  const t = state.today;
+  if(t.date !== todayKey()){ t.date = todayKey(); t.q = 0; t.ok = 0; t.stars = 0; t.mods = {}; }
+  const body = $('#stats-body');
+  const rows = [
+    `<div class="row"><span>📅 今日日期</span><span>${t.date}</span></div>`,
+    `<div class="row"><span>✏️ 今日答题</span><span>${t.q} 题</span></div>`,
+    `<div class="row"><span>✅ 今日答对</span><span>${t.ok} 题</span></div>`,
+    `<div class="row"><span>⭐ 今日得星</span><span>${t.stars} 颗</span></div>`,
+  ];
+  const mods = Object.keys(t.mods).filter(k => t.mods[k] > 0);
+  if(mods.length){
+    rows.push(`<div class="row"><span>🎮 各模块今日</span><span>${mods.map(k => (MODNAME[k] || k) + ' +' + t.mods[k]).join('、')}</span></div>`);
+  }
+  rows.push(`<div class="row"><span>🏆 累计星星</span><span>${state.stars} 颗</span></div>`);
+  rows.push(`<div class="row"><span>💾 星星按设备保存</span><span>换设备不互通</span></div>`);
+  body.innerHTML = rows.join('');
+}
+$('#stats-btn').onclick = () => { renderStats(); $('#stats-mask').classList.remove('hidden'); };
+$('#stats-close').onclick = () => $('#stats-mask').classList.add('hidden');
+$('#stats-mask').onclick = e => { if(e.target === $('#stats-mask')) $('#stats-mask').classList.add('hidden'); };
+$('#wardrobe-close').onclick = () => $('#wardrobe-mask').classList.add('hidden');
+$('#wardrobe-mask').onclick = e => { if(e.target === $('#wardrobe-mask')) $('#wardrobe-mask').classList.add('hidden'); };
 
 /* ================= 启动 ================= */
 buildHome();
 updateStars();
+updateToday();
+loadAudioPart('core');                       // 先加载常用语音（表扬/鼓励/欢迎），其余按模块懒加载
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
