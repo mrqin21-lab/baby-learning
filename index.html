@@ -346,6 +346,7 @@ const AUDIO_PARTS = {
   abc:      ['abc_'],
 };
 const loadedParts = {};
+const priorityParts = new Set();   // 用户进模块时主动请求的分片（可能仍在下载中）
 function partOfKey(key){
   for(const p in AUDIO_PARTS){
     if(AUDIO_PARTS[p].some(pre => key.indexOf(pre) === 0)) return p;
@@ -357,22 +358,50 @@ function loadAudioPart(p){
   const pr = new Promise(res => {
     const s = document.createElement('script');
     s.src = 'audio-' + p + '.js';
-    s.onload = () => { rebuildTextIndex(); res(); };
-    s.onerror = () => { delete loadedParts[p]; res(); };   // 加载失败静默降级为系统语音，可重试
+    s.onload = () => { priorityParts.delete(p); rebuildTextIndex(); res(); };
+    s.onerror = () => { delete loadedParts[p]; priorityParts.delete(p); res(); };   // 加载失败静默降级为系统语音，可重试
     document.head.appendChild(s);
   });
   loadedParts[p] = pr;
   return pr;
 }
 function ensurePartsFor(texts){
-  const parts = new Set(['core']);            // core 始终确保（表扬/鼓励/欢迎常用）
-  (Array.isArray(texts) ? texts : [texts]).forEach(t => {
-    if(!t) return;
+  const items = (Array.isArray(texts) ? texts : [texts]).filter(Boolean);
+  const waits = new Set(['core']);            // core 始终确保（表扬/鼓励/欢迎常用）
+  items.forEach(t => {
     const k = textToKey[t];
     const p = k && partOfKey(k);
-    if(p && !loadedParts[p]) parts.add(p);
+    if(p) waits.add(p);
+    else priorityParts.forEach(pp => waits.add(pp));  // 查不到台词 → 可能还在途的分片里，等它下完再查，避免误判"无录音"而漏播
   });
-  return Promise.all([...parts].map(loadAudioPart));
+  const pr = Promise.all([...waits].map(loadAudioPart));
+  return new Promise(res => {                 // 最多等 8 秒：分片一直下不来也不让语音干等
+    let settled = false;
+    const fin = () => { if(!settled){ settled = true; res(); } };
+    pr.then(fin, fin);
+    setTimeout(fin, 8000);
+  });
+}
+
+/* 其余分片的后台预载：串行、小文件优先，不抢占首屏带宽；
+   进模块时 boostParts 把该模块分片提到队首，下一句语音不用排在别人后面 */
+const preloadQueue = ['cartoon','count','shape','animal','princess','hanzi','abc','add','dressup'];
+let pumping = false;
+function pumpPreload(){
+  if(pumping) return;
+  pumping = true;
+  const step = () => {
+    const p = preloadQueue.shift();
+    if(!p){ pumping = false; return; }
+    loadAudioPart(p).then(step);
+  };
+  step();
+}
+function boostParts(parts){
+  (Array.isArray(parts) ? parts : [parts]).slice().reverse().forEach(p => {
+    const i = preloadQueue.indexOf(p);
+    if(i >= 0){ preloadQueue.splice(i, 1); preloadQueue.unshift(p); }
+  });
 }
 
 /* ================= 真声音频播放（优先），系统语音兜底 ================= */
@@ -382,12 +411,10 @@ function rebuildTextIndex(){
   if(!d) return;
   for(const k in d){ const it = d[k]; if(it && it.t) textToKey[it.t] = k; }
 }
-let currentAudio = null;
 function stopCurrentAudio(){
-  if(currentAudio){
-    try{ currentAudio.pause(); }catch(e){}
-    currentAudio.onended = currentAudio.onerror = null;
-    currentAudio = null;
+  if(audioEl){
+    try{ audioEl.pause(); }catch(e){}
+    audioEl.onended = audioEl.onerror = null;
   }
 }
 /* 语音令牌：每次新播报或"回家/静音"都会使旧播报链整体作废，
@@ -396,11 +423,51 @@ let voiceToken = 0;
 function stopVoiceAll(){
   voiceToken++;
   stopCurrentAudio();
+  try{ speechSynthesis.cancel(); }catch(e){}   // TTS 兜底的话也一并停掉
 }
-/* texts: 字符串数组。每个字符串若在已加载的语音分片里有预录音频则播放真声，否则用系统语音朗读 */
+/* iOS 音频解锁：iPhone 规定只有"复用已成功播放过的元素"才能程序连播，
+   否则后面的语音会被系统静音拦下（表现为漏台词）。首次触摸时用 0.02 秒
+   静音解锁一次，之后所有播报共用这一个已解锁的元素。 */
+let audioEl = null, audioUnlocked = false;
+function getAudioEl(){
+  if(!audioEl) audioEl = new Audio();
+  return audioEl;
+}
+function unlockAudio(){
+  if(audioUnlocked) return;
+  audioUnlocked = true;
+  const a = getAudioEl();
+  a.src = 'data:audio/wav;base64,UklGRmQBAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YUABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
+  a.play().then(() => { a.pause(); }).catch(() => {});
+}
+window.addEventListener('pointerdown', unlockAudio, { once:true, capture:true });
+/* 系统语音兜底开关：预录音等了 8 秒仍缺失/加载失败/播放被拒时，用系统 TTS 把这句念出来。
+   正常情况下分片在途时语音链会等待（不触发 TTS），只有真拿不到录音才兜底，不会出现音色混杂。
+   设为 false 则恢复"全程单一音色"（缺录音时静音跳过）。 */
+const TTS_FALLBACK = true;
+/* 系统语音兜底：自动选中英文音色 */
+function speakTTS(text, onend){
+  let fired = false;
+  const fin = () => { if(!fired){ fired = true; if(onend) onend(); } };
+  if(!TTS_FALLBACK){ setTimeout(fin, 120); return; }
+  try{
+    if(!window.speechSynthesis){ setTimeout(fin, 250); return; }
+    try{ speechSynthesis.cancel(); }catch(e){}
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = /^[A-Za-z0-9\s!.,'’()-]+$/.test(text) ? 'en-US' : 'zh-CN';
+    u.rate = 1;
+    u.onend = fin; u.onerror = fin;
+    speechSynthesis.speak(u);
+    setTimeout(fin, 15000);    // 个别浏览器 TTS 事件不回来的保险
+  }catch(e){ setTimeout(fin, 250); }
+}
+/* texts: 字符串数组，逐条播放对应的微软晓晓预录音（共用解锁元素，保证 iOS 连播）。
+   每句都带看门狗：ended 事件不触发也能自动推进，链不会卡死；
+   播放被拒/解码失败/无预录音时用系统语音兜底，不再静音跳过。 */
 function playTexts(texts, done){
   if(muted){ if(done) setTimeout(done, 400); return; }
   const items = (Array.isArray(texts) ? texts : [texts]).filter(x => x);
+  try{ speechSynthesis.cancel(); }catch(e){}   // 新播报接管：停掉上一条链的 TTS 兜底
   const tok = ++voiceToken;
   ensurePartsFor(items).then(() => {
     if(tok !== voiceToken) return;      // 加载期间已被新播报/回家/静音打断
@@ -410,15 +477,31 @@ function playTexts(texts, done){
       if(i >= items.length){ if(done) done(); return; }
       const text = items[i++];
       const key = textToKey[text];
-      stopCurrentAudio();
-      if(key && window.AUDIO_DATA[key] && window.AUDIO_DATA[key].s){
-        const a = new Audio(window.AUDIO_DATA[key].s);
-        currentAudio = a;
-        const fin = () => { a.onended = a.onerror = null; setTimeout(next, 140); };
-        a.onended = fin; a.onerror = fin;
-        a.play().catch(() => { currentAudio = null; setTimeout(next, 200); });   // 播放失败跳过该句
+      const clip = key && window.AUDIO_DATA[key] && window.AUDIO_DATA[key].s;
+      if(clip){
+        const a = getAudioEl();
+        try{ a.pause(); }catch(e){}
+        let wd = null, bailed = false;
+        const cleanup = () => { a.onended = a.onerror = a.onloadedmetadata = null; if(wd){ clearTimeout(wd); wd = null; } };
+        const fin = () => { cleanup(); setTimeout(next, 140); };
+        const bail = () => { if(bailed) return; bailed = true; cleanup(); speakTTS(text, () => setTimeout(next, 200)); };
+        const arm = ms => {
+          if(wd) clearTimeout(wd);
+          wd = setTimeout(() => {
+            // 还在正常出声就再宽限一会儿；真卡死才推进（ended 丢失的保险）
+            if(!a.paused && !a.ended && a.currentTime > 0 && isFinite(a.duration) && a.currentTime < a.duration){ arm(5000); return; }
+            fin();
+          }, ms);
+        };
+        a.onended = fin;
+        a.onerror = bail;
+        a.onloadedmetadata = () => arm((a.duration || 0) * 1000 + 2500);
+        a.src = clip;
+        arm(12000);                       // 元数据迟迟不来的兜底
+        const p = a.play();
+        if(p && p.catch) p.catch(bail);
       }else{
-        setTimeout(next, 120);   // 无预录音频：静音跳过，全程单一音色
+        speakTTS(text, () => setTimeout(next, 200));   // 无预录音频：系统语音兜底，不再静音漏句
       }
     };
     next();
@@ -1233,9 +1316,16 @@ function choose(btn, op){
     if(q.correctHTML) $('#prompt-visual').innerHTML = q.correctHTML;
     const seq = [bonus ? '连对五题，太厉害啦！多送你两颗小星星！' : praise];
     if(q.correctSpeak) seq.push(...(Array.isArray(q.correctSpeak) ? q.correctSpeak : [q.correctSpeak]));
-    playTexts(seq);
+    // 表扬语音播完再出下一题（避免半句被截断）；固定延时只做兜底
     clearTimeout(state.nextTimer);
-    state.nextTimer = setTimeout(showQuestion, q.nextDelay || 2500);
+    let advanced = false;
+    const advance = () => {
+      if(advanced) return;
+      advanced = true;
+      state.nextTimer = setTimeout(showQuestion, 650);
+    };
+    playTexts(seq, advance);
+    state.nextTimer = setTimeout(advance, (q.nextDelay || 2500) + 4500);   // 兜底：语音异常时不卡住
   }else{
     btn.classList.add('wrong');
     btn.disabled = true;
@@ -1296,9 +1386,10 @@ function startModule(id){
   $('#home').classList.add('hidden');
   $('#game').classList.remove('hidden');
   updateStars();
-  // 立即出题/进游戏：语音分片由 playTexts 内部按需加载，
-  // 弱网下题目画面先出现、真声稍后跟上（不再干等最大 2.7MB 的分片下载）
-  (MODULE_PARTS[id] || []).forEach(loadAudioPart);
+  // 立即出题/进游戏：语音分片由 playTexts 内部按需加载（在途分片会被等待，最多 8 秒），
+  // 弱网下题目画面先出现、真声稍后跟上，不会漏句；同时把该模块分片在预载队列里提到最前
+  boostParts(MODULE_PARTS[id] || []);
+  (MODULE_PARTS[id] || []).forEach(p => { priorityParts.add(p); loadAudioPart(p); });
   if(m.special === 'dressup'){ startDressup(); return; }
   showQuestion();
 }
@@ -1382,6 +1473,21 @@ buildHome();
 updateStars();
 updateToday();
 loadAudioPart('core');                       // 先加载常用语音（表扬/鼓励/欢迎），其余按模块懒加载
+// 其余语音分片的后台预载：首次触摸就开始（宝贝多半正要进模块），页面载完 2.5 秒后兜底触发；
+// 串行小文件优先，不与首屏抢带宽。预载完成后进任何模块语音都能立刻开口。
+// 用户开了省流量模式（saveData）则跳过。
+let preloadKicked = false;
+function kickPreload(){
+  if(preloadKicked) return;
+  preloadKicked = true;
+  try{
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection || {};
+    if(conn.saveData) return;
+  }catch(e){}
+  pumpPreload();
+}
+window.addEventListener('pointerdown', kickPreload, { once:true, capture:true });
+window.addEventListener('load', () => setTimeout(kickPreload, 2500));
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('service-worker.js').catch(() => {});
