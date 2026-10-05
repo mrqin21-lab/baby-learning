@@ -36,6 +36,8 @@
   }
   #app { min-height:100vh; display:flex; flex-direction:column; }
   .screen { flex:1; display:flex; flex-direction:column; align-items:center; padding: 18px 16px 30px; }
+  /* 窄屏：右上角三个固定按钮会压住标题，首页顶部留出空间 */
+  @media (max-width: 640px) { #home { padding-top: 68px; } }
   .hidden { display:none !important; }
 
   /* ---------- 首页 ---------- */
@@ -158,6 +160,21 @@
   /* ---------- 今日统计 ---------- */
   .today-line { text-align:center; font-size: clamp(13px,2.2vw,17px); color:#7a6aa0; margin: -10px 0 18px; }
   #stats-mask { position:fixed; inset:0; background:rgba(60,42,90,.45); display:flex; align-items:center; justify-content:center; z-index:100; padding:24px; }
+  /* 回家确认弹层（大图标按钮，孩子不需要识字） */
+  #back-mask { position:fixed; inset:0; background:rgba(60,42,90,.45); display:flex; align-items:center; justify-content:center; z-index:100; padding:24px; }
+  .confirm-panel { background:#fff; border:5px solid #ffd166; border-radius:30px; padding:30px 34px; text-align:center; box-shadow:0 14px 40px rgba(0,0,0,.25); }
+  .confirm-emoji { font-size:64px; line-height:1; margin-bottom:16px; }
+  .confirm-btns { display:flex; gap:20px; justify-content:center; }
+  .confirm-btn {
+    min-width:130px; min-height:110px; border-radius:26px; border:5px solid #ffd166; background:#fff;
+    font-size:44px; font-weight:bold; color:#5a4a80; cursor:pointer; font-family:inherit;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    touch-action: manipulation; box-shadow:0 6px 0 rgba(0,0,0,.12);
+  }
+  .confirm-btn span { font-size:20px; }
+  .confirm-btn.yes { background:#fff4cc; }
+  .confirm-btn.no { background:#e7f9ec; border-color:#51cf66; }
+  .confirm-btn:active { transform: translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.12); }
   .stats-panel { background:#fff; border:5px solid #ffd166; border-radius:26px; padding:22px 26px; max-width:440px; width:100%; text-align:center; box-shadow:0 14px 40px rgba(0,0,0,.25); }
   .stats-panel h3 { margin:0 0 14px; color:#e8890c; font-size: clamp(20px,4vw,28px); }
   .stats-rows { text-align:left; font-size: clamp(15px,2.6vw,18px); color:#5a4a80; line-height:2; margin-bottom:16px; }
@@ -171,8 +188,9 @@
   }
   #back-btn {
     border:3px solid #fff; background:#fff; color:#5a4a80; font-weight:bold;
-    border-radius:999px; padding:8px 18px; font-size:18px; cursor:pointer;
+    border-radius:999px; padding:10px 26px; font-size:20px; cursor:pointer;
     box-shadow:0 4px 0 rgba(0,0,0,.12); font-family:inherit;
+    min-height:56px; touch-action: manipulation;
   }
   #game-title { font-size: clamp(20px,3.6vw,30px); font-weight:bold; color:#5a4a80; }
   .game-star { font-size: clamp(18px,3vw,26px); font-weight:bold; color:#e8890c; background:#fff; border:3px solid #ffd166; border-radius:999px; padding:4px 16px; white-space:nowrap; }
@@ -212,6 +230,15 @@
   .option:active:not(:disabled) { transform: translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.12); }
   .option.correct { background:#c8f7d0; border-color:#51cf66; animation: bounce .5s; }
   .option.wrong { opacity:.35; filter: grayscale(.7); animation: shake .4s; }
+  /* 错两次后的"正确答案提示"：暖黄光晕轻柔脉动（不用红色、不抖动） */
+  .option.hint { animation: hintGlow 1.2s ease-in-out infinite; }
+  @keyframes hintGlow {
+    0%, 100% { box-shadow: 0 8px 0 rgba(0,0,0,.12), 0 0 0 0 rgba(255,183,3,0); border-color:#ffd166; }
+    50% { box-shadow: 0 8px 0 rgba(0,0,0,.12), 0 0 0 10px rgba(255,183,3,.55); border-color:#ffb703; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .option.hint { animation: none; box-shadow: 0 8px 0 rgba(0,0,0,.12), 0 0 0 8px rgba(255,183,3,.5); border-color:#ffb703; }
+  }
   .option:disabled { cursor: default; }
 
   .shape { width: 72%; aspect-ratio: 1/1; max-width:130px; }
@@ -269,8 +296,8 @@
     <div class="today-line">📅 今日：答对 <span id="today-ok">0</span> 题 · 收获 <span id="today-stars">0</span>⭐</div>
     <div id="module-grid"></div>
     <div class="parent-hint">
-      💡 给爸爸妈妈：建议用 Edge 或 Chrome 浏览器打开，调大音量；每天陪宝贝玩 10–15 分钟最合适。<br>
-      点哪个卡片就玩哪个，答对一题收一颗小星星，连对 5 题有神秘大奖！
+      💡 给爸爸妈妈：每天陪宝贝玩 10–15 分钟最合适；长按右上角 📊 可看今日统计。<br>
+      点哪个卡片就玩哪个，答对一题收一颗小星星，每答对 5 题有神秘大奖！
     </div>
   </div>
 
@@ -294,6 +321,17 @@
       <h3>📊 宝贝小档案</h3>
       <div class="stats-rows" id="stats-body"></div>
       <button id="stats-close" class="stats-close">👍 知道啦</button>
+    </div>
+  </div>
+
+  <!-- 回家确认弹层 -->
+  <div id="back-mask" class="hidden">
+    <div class="confirm-panel">
+      <div class="confirm-emoji">🏠</div>
+      <div class="confirm-btns">
+        <button id="back-yes" class="confirm-btn yes">🏠<span>回家</span></button>
+        <button id="back-no" class="confirm-btn no">↩️<span>继续玩</span></button>
+      </div>
     </div>
   </div>
 
@@ -324,8 +362,7 @@ function numberOptions(n, k, max, min){
 
 /* ================= 语音 =================
    统一使用预录的微软神经网络语音（晓晓/Ana，make_voice.py 生成，按模块懒加载）。
-   不再使用系统 TTS 兜底——避免一台设备上两种音色混着说话；
-   没有录音的台词直接静音跳过。 */
+   录音缺失或加载失败时才用系统语音兜底（TTS_FALLBACK 开关，正常播放全程单一音色）。 */
 let muted = false;
 try { muted = localStorage.getItem('baby_muted') === '1'; } catch(e){}
 
@@ -1181,6 +1218,8 @@ const state = {
   q: null,
   locked: false,
   streak: 0,
+  wrongInQ: 0,          // 本题已点错次数（每次出题清零）
+  qWrongStreak: 0,      // 连续多少题"第一次就点错"（难度降级用）
   level: { count: 1, add: 1 },
   wrongHanzi: [],
   today: { date: '', q: 0, ok: 0, stars: 0, mods: {} },
@@ -1263,6 +1302,7 @@ function showQuestion(){
   const m = MODULES.find(x => x.id === state.moduleId);
   const q = m.gen();
   state.q = q; state.locked = false;
+  state.wrongInQ = 0;
 
   $('#prompt-visual').innerHTML = q.promptHTML;
   const box = $('#options');
@@ -1273,6 +1313,7 @@ function showQuestion(){
     b.className = 'option';
     if(q.useImg) b.classList.add('has-img');
     b.innerHTML = op.html;
+    b.dataset.v = String(op.value);
     b.onclick = () => choose(b, op);
     box.appendChild(b);
   });
@@ -1284,6 +1325,7 @@ function choose(btn, op){
   const q = state.q;
   if(String(op.value) === String(q.answerValue)){
     state.locked = true;
+    if(state.wrongInQ === 0) state.qWrongStreak = 0;   // 一次就答对：连错计数清零
     btn.classList.add('correct');
     state.sessionCorrect++;
     state.streak++;
@@ -1312,7 +1354,7 @@ function choose(btn, op){
       }
     }
     const praise = pick(PRAISE);
-    showPraise(levelUpText || (bonus ? '🎉 连对5题！奖励+2⭐' : praise));
+    showPraise(levelUpText || (bonus ? '🎉 答对5题！奖励+2⭐' : praise));
     if(q.correctHTML) $('#prompt-visual').innerHTML = q.correctHTML;
     const seq = [bonus ? '连对五题，太厉害啦！多送你两颗小星星！' : praise];
     if(q.correctSpeak) seq.push(...(Array.isArray(q.correctSpeak) ? q.correctSpeak : [q.correctSpeak]));
@@ -1343,6 +1385,22 @@ function choose(btn, op){
         if(state.wrongHanzi.length > 15) state.wrongHanzi.shift();
         saveWrongHanzi();
       }
+    }
+    // 同一道题点错两次后，轻柔高亮正确选项（仅视觉提示，不朗读）
+    state.wrongInQ++;
+    if(state.wrongInQ === 1) state.qWrongStreak++;
+    if(state.wrongInQ >= 2){
+      const ans = String(q.answerValue);
+      document.querySelectorAll('#options .option').forEach(b => {
+        if(b.dataset.v === ans && !b.disabled) b.classList.add('hint');
+      });
+    }
+    // 数一数/加法：连续两题都"第一次就点错"，自动降回 1 级（仅屏幕提示，不朗读）
+    if((state.moduleId === 'count' || state.moduleId === 'add') && state.level[state.moduleId] === 2 && state.qWrongStreak >= 2){
+      state.level[state.moduleId] = 1;
+      saveLevels();
+      state.qWrongStreak = 0;
+      showPraise('🌱 我们先玩简单一点的～');
     }
     const wrongArr = op.wrongSpeak ? (Array.isArray(op.wrongSpeak) ? op.wrongSpeak : [op.wrongSpeak]) : [];
     playTexts(wrongArr.concat([pick(TRY_AGAIN)]));
@@ -1380,6 +1438,8 @@ function startModule(id){
   state.streak = 0;
   state.locked = true;                       // 防止旧题目的定时器/点击串场
   state.mem = null;
+  state.wrongInQ = 0;
+  state.qWrongStreak = 0;                    // 换模块后重新计连错
   clearTimeout(state.nextTimer);
   const m = MODULES.find(x => x.id === id);
   $('#game-title').textContent = `${m.icon} ${m.name}`;
@@ -1394,14 +1454,20 @@ function startModule(id){
   showQuestion();
 }
 
-$('#back-btn').onclick = () => {
+// 回家：先弹大图标确认，防止孩子误触退出（原有清理逻辑保留在确认之后执行）
+function doBackHome(){
   state.locked = true;
   state.mem = null;
   clearTimeout(state.nextTimer);
   stopVoiceAll();
+  $('#back-mask').classList.add('hidden');
   $('#game').classList.add('hidden');
   $('#home').classList.remove('hidden');
-};
+}
+$('#back-btn').onclick = () => { $('#back-mask').classList.remove('hidden'); };
+$('#back-yes').onclick = doBackHome;
+$('#back-no').onclick = () => $('#back-mask').classList.add('hidden');
+$('#back-mask').onclick = e => { if(e.target === $('#back-mask')) $('#back-mask').classList.add('hidden'); };
 
 $('#repeat-btn').onclick = () => {
   if(state.q && !state.locked) playTexts(state.q.promptSpeak);
@@ -1464,7 +1530,16 @@ function renderStats(){
   rows.push(`<div class="row"><span>💾 星星按设备保存</span><span>换设备不互通</span></div>`);
   body.innerHTML = rows.join('');
 }
-$('#stats-btn').onclick = () => { renderStats(); $('#stats-mask').classList.remove('hidden'); };
+// 统计键长按 2 秒才打开（防止孩子乱点）；中途松手即取消
+let statsPressTimer = null;
+const statsBtn = $('#stats-btn');
+statsBtn.addEventListener('pointerdown', () => {
+  clearTimeout(statsPressTimer);
+  statsPressTimer = setTimeout(() => { renderStats(); $('#stats-mask').classList.remove('hidden'); }, 2000);
+});
+['pointerup', 'pointerleave', 'pointercancel'].forEach(ev =>
+  statsBtn.addEventListener(ev, () => clearTimeout(statsPressTimer)));
+statsBtn.addEventListener('contextmenu', e => e.preventDefault());
 $('#stats-close').onclick = () => $('#stats-mask').classList.add('hidden');
 $('#stats-mask').onclick = e => { if(e.target === $('#stats-mask')) $('#stats-mask').classList.add('hidden'); };
 
